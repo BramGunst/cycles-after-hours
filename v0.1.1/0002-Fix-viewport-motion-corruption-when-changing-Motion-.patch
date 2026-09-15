@@ -1,0 +1,52 @@
+From a500f2f7eb7e50c40283f4da7e1a21a4761b0115 Mon Sep 17 00:00:00 2001
+From: Bram Gunst <bram.gunst@gmail.com>
+Date: Tue, 15 Sep 2026 21:27:20 +0200
+Subject: [PATCH 2/2] Fix viewport motion corruption when changing Motion Steps
+
+---
+ intern/cycles/scene/object.cpp | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/intern/cycles/scene/object.cpp b/intern/cycles/scene/object.cpp
+index 99c212d4a11..8c4d27c6dfc 100644
+--- a/intern/cycles/scene/object.cpp
++++ b/intern/cycles/scene/object.cpp
+@@ -801,6 +801,7 @@ void ObjectManager::device_update_transforms(DeviceScene *dscene, Scene *scene,
+ 
+   state.objects = dscene->objects.alloc(scene->objects.size());
+   state.object_flag = dscene->object_flag.alloc(scene->objects.size());
++  bool update_all = dscene->objects.need_realloc();
+   state.object_motion = nullptr;
+   state.object_motion_pass = nullptr;
+ 
+@@ -821,9 +822,17 @@ void ObjectManager::device_update_transforms(DeviceScene *dscene, Scene *scene,
+ 
+       /* Clear motion array if there is no actual motion. */
+       ob->update_motion();
++      if (!update_all && ob->use_motion() &&
++          state.objects[ob->index].motion_offset != motion_offset)
++      {
++        /* Offsets can change even when the total motion buffer size stays the same. */
++        update_all = true;
++      }
+       motion_offset += ob->motion.size();
+     }
+ 
++    /* Resizing discards the packed transforms, including those of unchanged objects. */
++    update_all |= dscene->object_motion.size() != motion_offset;
+     state.object_motion = dscene->object_motion.alloc(motion_offset);
+   }
+ 
+@@ -836,9 +845,6 @@ void ObjectManager::device_update_transforms(DeviceScene *dscene, Scene *scene,
+     numparticles += psys->particles.size();
+   }
+ 
+-  /* as all the arrays are the same size, checking only dscene.objects is sufficient */
+-  const bool update_all = dscene->objects.need_realloc();
+-
+   /* Parallel object update, with grain size to avoid too much threading overhead
+    * for individual objects. */
+   static const int OBJECTS_PER_TASK = 32;
+-- 
+2.55.0.windows.5
+

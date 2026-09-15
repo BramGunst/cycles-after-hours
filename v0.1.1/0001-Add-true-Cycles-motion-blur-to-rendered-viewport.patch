@@ -1,0 +1,417 @@
+From 5dad52a8460cedfcb5d888fd62a1407808bafa0e Mon Sep 17 00:00:00 2001
+From: Bram Gunst <bram.gunst@gmail.com>
+Date: Tue, 15 Sep 2026 14:24:32 +0200
+Subject: [PATCH 1/2] Add true Cycles motion blur to rendered viewport
+
+---
+ intern/cycles/blender/addon/properties.py     | 21 +++++++
+ intern/cycles/blender/addon/ui.py             |  1 +
+ intern/cycles/blender/camera.cpp              | 56 +++++++++++++++----
+ intern/cycles/blender/object.cpp              | 56 ++++++++++++++++---
+ intern/cycles/blender/session.cpp             |  5 ++
+ intern/cycles/blender/sync.cpp                | 18 ++++++
+ intern/cycles/blender/sync.h                  |  5 ++
+ intern/cycles/scene/scene.cpp                 |  4 ++
+ .../depsgraph/intern/depsgraph_eval.cc        |  4 +-
+ .../intern/eval/deg_eval_copy_on_write.cc     |  3 +
+ 10 files changed, 152 insertions(+), 21 deletions(-)
+
+diff --git a/intern/cycles/blender/addon/properties.py b/intern/cycles/blender/addon/properties.py
+index 02aef651642..13419afc2fe 100644
+--- a/intern/cycles/blender/addon/properties.py
++++ b/intern/cycles/blender/addon/properties.py
+@@ -381,6 +381,15 @@ def update_pause(self, context):
+     context.area.tag_redraw()
+ 
+ 
++def update_viewport_motion_blur(self, context):
++    self.id_data.update_tag()
++
++
++def update_motion_blur(self, context):
++    if context.scene and context.scene.cycles.use_viewport_motion_blur:
++        self.id_data.update_tag()
++
++
+ class CyclesRenderSettings(bpy.types.PropertyGroup):
+     __slots__ = ()
+ 
+@@ -1000,10 +1009,18 @@ class CyclesRenderSettings(bpy.types.PropertyGroup):
+         unit='LENGTH'
+     )
+ 
++    use_viewport_motion_blur: BoolProperty(
++        name="Viewport Motion Blur",
++        description="Use render motion blur settings in the rendered viewport",
++        default=False,
++        update=update_viewport_motion_blur,
++    )
++
+     rolling_shutter_type: EnumProperty(
+         name="Shutter Type",
+         default='NONE',
+         description="Type of rolling shutter effect matching CMOS-based cameras",
++        update=update_motion_blur,
+         items=(
+             ('NONE', "None", "No rolling shutter effect used"),
+             ('TOP', "Top-Bottom", "Sensor is being scanned from top to bottom")
+@@ -1014,6 +1031,7 @@ class CyclesRenderSettings(bpy.types.PropertyGroup):
+     rolling_shutter_duration: FloatProperty(
+         name="Rolling Shutter Duration",
+         description="Scanline \"exposure\" time for the rolling shutter effect",
++        update=update_motion_blur,
+         default=0.1,
+         min=0.0, max=1.0,
+         subtype='FACTOR',
+@@ -1413,16 +1431,19 @@ class CyclesObjectSettings(bpy.types.PropertyGroup):
+         name="Use Motion Blur",
+         description="Use motion blur for this object",
+         default=True,
++        update=update_motion_blur,
+     )
+ 
+     use_deform_motion: BoolProperty(
+         name="Use Deformation Motion",
+         description="Use deformation motion blur for this object",
+         default=True,
++        update=update_motion_blur,
+     )
+ 
+     motion_steps: IntProperty(
+         name="Motion Steps",
++        update=update_motion_blur,
+         description="Control accuracy of motion blur, more steps gives more memory usage (actual number of steps is 2^(steps - 1))",
+         min=1,
+         max=7,
+diff --git a/intern/cycles/blender/addon/ui.py b/intern/cycles/blender/addon/ui.py
+index 80799e48f79..10dc8ddb057 100644
+--- a/intern/cycles/blender/addon/ui.py
++++ b/intern/cycles/blender/addon/ui.py
+@@ -729,6 +729,7 @@ class CYCLES_RENDER_PT_motion_blur(CyclesButtonsPanel, Panel):
+         layout.active = rd.use_motion_blur
+ 
+         col = layout.column()
++        col.prop(cscene, "use_viewport_motion_blur")
+         col.prop(rd, "motion_blur_position", text="Position")
+         col.prop(rd, "motion_blur_shutter")
+         col.separator()
+diff --git a/intern/cycles/blender/camera.cpp b/intern/cycles/blender/camera.cpp
+index f935b1bbed1..26ef46f1f52 100644
+--- a/intern/cycles/blender/camera.cpp
++++ b/intern/cycles/blender/camera.cpp
+@@ -553,7 +553,8 @@ static void blender_camera_sync(Camera *cam,
+                                 const int width,
+                                 const int height,
+                                 const char *viewname,
+-                                blender::PointerRNA *cscene)
++                                blender::PointerRNA *cscene,
++                                const bool preserve_motion = false)
+ {
+   float aspectratio;
+   float sensor_size;
+@@ -671,26 +672,30 @@ static void blender_camera_sync(Camera *cam,
+   cam->set_aperture_ratio(bcam->aperture_ratio);
+ 
+   /* perspective */
+-  cam->set_fov(2.0f * atanf((0.5f * sensor_size) / bcam->lens / aspectratio));
++  if (!preserve_motion) {
++    cam->set_fov(2.0f * atanf((0.5f * sensor_size) / bcam->lens / aspectratio));
++  }
+   cam->set_focaldistance(bcam->focaldistance);
+   cam->set_aperturesize(bcam->aperturesize);
+   cam->set_blades(bcam->apertureblades);
+   cam->set_bladesrotation(bcam->aperturerotation);
+ 
+   /* transform */
+-  cam->set_matrix(blender_camera_matrix(bcam->matrix, bcam->type, bcam->panorama_type));
++  if (!preserve_motion) {
++    cam->set_matrix(blender_camera_matrix(bcam->matrix, bcam->type, bcam->panorama_type));
+ 
+-  array<Transform> motion = cam->get_motion();
+-  motion.resize(bcam->motion_steps, cam->get_matrix());
+-  if (bcam->motion_steps != 0) {
+-    motion[bcam->motion_steps / 2] = cam->get_matrix();
++    array<Transform> motion = cam->get_motion();
++    motion.resize(bcam->motion_steps, cam->get_matrix());
++    if (bcam->motion_steps != 0) {
++      motion[bcam->motion_steps / 2] = cam->get_matrix();
++    }
++    cam->set_motion(motion);
++    cam->set_use_perspective_motion(false);
++    cam->set_fov_pre(cam->get_fov());
++    cam->set_fov_post(cam->get_fov());
+   }
+-  cam->set_motion(motion);
+-  cam->set_use_perspective_motion(false);
+ 
+   cam->set_shuttertime(bcam->shuttertime);
+-  cam->set_fov_pre(cam->get_fov());
+-  cam->set_fov_post(cam->get_fov());
+   cam->set_motion_position(bcam->motion_position);
+ 
+   cam->set_rolling_shutter_type(bcam->rolling_shutter_type);
+@@ -1172,7 +1177,34 @@ void BlenderSync::sync_view(blender::View3D *b_v3d,
+   bcam.motion_steps = scene->need_motion() == Scene::MOTION_PASS_INTERACTIVE ? 2 : 0;
+   blender::PointerRNA scene_rna_ptr = RNA_id_pointer_create(&b_scene->id);
+   blender::PointerRNA cscene = RNA_pointer_get(&scene_rna_ptr, "cycles");
+-  blender_camera_sync(scene->camera, scene, &bcam, width, height, "", &cscene);
++  bool preserve_motion = false;
++  if (scene->need_motion() == Scene::MOTION_BLUR) {
++    bcam.motion_position = blender_motion_blur_position_type_to_cycles(
++        b_render_settings.motion_blur_position);
++    bcam.rolling_shutter_type = (Camera::RollingShutterType)get_enum(
++        cscene,
++        "rolling_shutter_type",
++        Camera::ROLLING_SHUTTER_NUM_TYPES,
++        Camera::ROLLING_SHUTTER_NONE);
++    bcam.rolling_shutter_duration = RNA_float_get(&cscene, "rolling_shutter_duration");
++    if (b_rv3d->persp == blender::RV3D_CAMOB) {
++      blender::Object *camera = get_camera_object(b_v3d, b_rv3d);
++      bcam.motion_steps = camera ? object_motion_steps(*camera, *camera) : 0;
++      preserve_motion = viewport_camera_motion && bcam.matrix == viewport_camera_matrix &&
++                        bcam.lens == viewport_camera_lens;
++    }
++    if (viewport_camera_motion && !preserve_motion) {
++      /* Camera-view changes need fresh shutter samples, not previous-view transforms. */
++      tag_update();
++      viewport_camera_motion = false;
++    }
++    viewport_camera_matrix = bcam.matrix;
++    viewport_camera_lens = bcam.lens;
++  }
++  else {
++    viewport_camera_motion = false;
++  }
++  blender_camera_sync(scene->camera, scene, &bcam, width, height, "", &cscene, preserve_motion);
+ 
+   /* dicing camera */
+   blender::Object *b_ob = RNA_pointer_get(&cscene, "dicing_camera").data_as<blender::Object>();
+diff --git a/intern/cycles/blender/object.cpp b/intern/cycles/blender/object.cpp
+index 319aa849515..ef94f427a00 100644
+--- a/intern/cycles/blender/object.cpp
++++ b/intern/cycles/blender/object.cpp
+@@ -20,6 +20,7 @@
+ 
+ #include "util/hash.h"
+ #include "util/log.h"
++#include "util/scoped_defer.h"
+ #include "util/task.h"
+ 
+ #include "BKE_duplilist.hh"
+@@ -27,6 +28,7 @@
+ #include "BKE_material.hh"
+ #include "BKE_object.hh"
+ 
++#include "DEG_depsgraph.hh"
+ #include "DEG_depsgraph_query.hh"
+ 
+ #include "RE_engine.h"
+@@ -597,11 +599,46 @@ void BlenderSync::sync_objects_and_motion(blender::RenderData &b_render,
+ {
+   /* get camera object here to deal with camera switch */
+   blender::Object *b_cam = get_camera_object(b_v3d, b_rv3d);
++  const bool viewport_motion = b_v3d && scene->need_motion() == Scene::MOTION_BLUR;
++
++  /* Free-view navigation is not animated camera motion. */
++  if (viewport_motion) {
++    b_cam = (b_rv3d && b_rv3d->persp == blender::RV3D_CAMOB && b_cam) ?
++                DEG_get_evaluated(&b_depsgraph, b_cam) :
++                nullptr;
++  }
+ 
+   const int frame_center = b_scene->r.cfra;
+   const float subframe_center = b_scene->r.subframe;
+   float frame_center_delta = 0.0f;
+ 
++  const bool graph_was_active = viewport_motion && DEG_is_active(&b_depsgraph);
++  if (viewport_motion) {
++    /* Like an offline graph, shutter evaluation must not write simulation state back to
++     * originals. Do not call frame handlers or change the original scene's timeline. */
++    DEG_make_inactive(&b_depsgraph);
++  }
++  auto frame_set = [&](const int frame, const float subframe) {
++    if (viewport_motion) {
++      const float time = clamp(float(frame) + subframe, MINAFRAMEF, MAXFRAMEF);
++      DEG_evaluate_on_framechange(&b_depsgraph, time, blender::DEG_EVALUATE_SYNC_WRITEBACK_NO);
++      b_scene = DEG_get_evaluated_scene(&b_depsgraph);
++    }
++    else {
++      RE_engine_frame_set(b_engine, frame, subframe);
++    }
++  };
++  SCOPED_DEFER({
++    if (viewport_motion) {
++      python_thread_state_restore(python_thread_state);
++      frame_set(frame_center, subframe_center);
++      python_thread_state_save(python_thread_state);
++      if (graph_was_active) {
++        DEG_make_active(&b_depsgraph);
++      }
++    }
++  });
++
+   if (scene->need_motion() == Scene::MOTION_BLUR &&
+       scene->camera->get_motion_position() != MOTION_POSITION_CENTER)
+   {
+@@ -618,7 +655,7 @@ void BlenderSync::sync_objects_and_motion(blender::RenderData &b_render,
+     const int frame = (int)floorf(time);
+     const float subframe = time - frame;
+     python_thread_state_restore(python_thread_state);
+-    RE_engine_frame_set(b_engine, frame, subframe);
++    frame_set(frame, subframe);
+     python_thread_state_save(python_thread_state);
+     if (b_cam) {
+       sync_camera_motion(b_render, b_cam, width, height, 0.0f);
+@@ -627,9 +664,9 @@ void BlenderSync::sync_objects_and_motion(blender::RenderData &b_render,
+ 
+   sync_objects(b_depsgraph, b_screen, b_v3d);
+ 
+-  /* In the viewport, only motion between previous frame and current frame is of interest, which is
+-   * kept updated separately. */
+-  if (b_v3d) {
++  /* Stock viewport motion passes track previous updates. True motion blur instead needs the
++   * same shutter-time samples as a final render. */
++  if (b_v3d && !viewport_motion) {
+     assert(scene->need_motion() == Scene::MOTION_NONE ||
+            scene->need_motion() == Scene::MOTION_PASS_INTERACTIVE);
+     return;
+@@ -677,7 +714,7 @@ void BlenderSync::sync_objects_and_motion(blender::RenderData &b_render,
+ 
+     /* change frame */
+     python_thread_state_restore(python_thread_state);
+-    RE_engine_frame_set(b_engine, frame, subframe);
++    frame_set(frame, subframe);
+     python_thread_state_save(python_thread_state);
+ 
+     /* Syncs camera motion if relative_time is one of the camera's motion times. */
+@@ -692,9 +729,12 @@ void BlenderSync::sync_objects_and_motion(blender::RenderData &b_render,
+   /* we need to set the python thread state again because this
+    * function assumes it is being executed from python and will
+    * try to save the thread state */
+-  python_thread_state_restore(python_thread_state);
+-  RE_engine_frame_set(b_engine, frame_center, subframe_center);
+-  python_thread_state_save(python_thread_state);
++  if (!viewport_motion) {
++    python_thread_state_restore(python_thread_state);
++    frame_set(frame_center, subframe_center);
++    python_thread_state_save(python_thread_state);
++  }
++  viewport_camera_motion = viewport_motion && b_cam;
+ }
+ 
+ CCL_NAMESPACE_END
+diff --git a/intern/cycles/blender/session.cpp b/intern/cycles/blender/session.cpp
+index 66825b562c9..b97b67bca3e 100644
+--- a/intern/cycles/blender/session.cpp
++++ b/intern/cycles/blender/session.cpp
+@@ -947,6 +947,11 @@ void BlenderSession::view_draw(const int w, const int h)
+ 
+       if (scene->camera->is_modified()) {
+         reset = true;
++        if (scene->need_motion() == Scene::MOTION_BLUR) {
++          /* Camera-view changes can require new animation samples. */
++          sync->tag_update();
++          tag_update();
++        }
+       }
+ 
+       session->scene->mutex.unlock();
+diff --git a/intern/cycles/blender/sync.cpp b/intern/cycles/blender/sync.cpp
+index 4560ba9d37f..4409a9dd253 100644
+--- a/intern/cycles/blender/sync.cpp
++++ b/intern/cycles/blender/sync.cpp
+@@ -330,6 +330,11 @@ void BlenderSync::sync_data(blender::RenderData &b_render,
+   sync_scene_attributes();
+   sync_view_layer(b_view_layer);
+   sync_integrator(b_view_layer, background, denoise_device_info);
++  if (b_v3d && scene->need_motion() == Scene::MOTION_BLUR) {
++    /* Shutter settings must be current before collecting motion times. */
++    viewport_camera_motion = false;
++    sync_view(b_v3d, b_rv3d, width, height);
++  }
+   sync_film(b_view_layer, b_screen, b_v3d);
+   sync_shaders(b_depsgraph, b_screen, b_v3d, auto_refresh_update, frame_update);
+   sync_images();
+@@ -423,6 +428,19 @@ void BlenderSync::sync_integrator(blender::ViewLayer &b_view_layer,
+   if (!preview) {
+     integrator->set_motion_blur(view_layer.use_motion_blur);
+   }
++  else if (!background) {
++    integrator->set_motion_blur(view_layer.use_motion_blur &&
++                                get_boolean(cscene, "use_viewport_motion_blur"));
++  }
++
++  if (!background && (integrator->get_motion_blur() || integrator->motion_blur_is_modified())) {
++    /* A shutter/step/animation edit can change deformation samples even if the mesh at the
++     * current frame is unchanged. Also discard motion attributes when disabling the option.
++     * This runs only during a requested scene sync, never for each render sample. */
++    for (const auto &item : geometry_map.key_to_scene_data()) {
++      geometry_map.set_recalc(item.first.id);
++    }
++  }
+ 
+   const bool use_light_tree = get_boolean(cscene, "use_light_tree");
+   integrator->set_use_light_tree(use_light_tree);
+diff --git a/intern/cycles/blender/sync.h b/intern/cycles/blender/sync.h
+index 58a9269f1c4..a6e140d1bad 100644
+--- a/intern/cycles/blender/sync.h
++++ b/intern/cycles/blender/sync.h
+@@ -303,6 +303,11 @@ class BlenderSync {
+   bool has_updates_ = true;
+ 
+   float frame_last_synced = 0;
++
++  /* Preserve shutter-sampled camera data across redraws of the same viewport. */
++  bool viewport_camera_motion = false;
++  Transform viewport_camera_matrix = transform_identity();
++  float viewport_camera_lens = 0.0f;
+ };
+ 
+ CCL_NAMESPACE_END
+diff --git a/intern/cycles/scene/scene.cpp b/intern/cycles/scene/scene.cpp
+index cf58010de51..9c4ffe14b46 100644
+--- a/intern/cycles/scene/scene.cpp
++++ b/intern/cycles/scene/scene.cpp
+@@ -674,6 +674,10 @@ bool Scene::update_camera_resolution(Progress &progress, int width, int height)
+   }
+ 
+   if (update_data) {
++    /* Camera updates can rebuild the motion blur shutter table. Upload it before rendering,
++     * so a progressive resolution change does not leave a pending scene update. */
++    lookup_tables->device_update(device, &dscene, this);
++
+     progress.set_status("Updating Device", "Writing constant memory");
+     device->const_copy_to("data", &dscene.data, sizeof(dscene.data));
+   }
+diff --git a/source/blender/depsgraph/intern/depsgraph_eval.cc b/source/blender/depsgraph/intern/depsgraph_eval.cc
+index f98bc4849e4..4b2d3bdd622 100644
+--- a/source/blender/depsgraph/intern/depsgraph_eval.cc
++++ b/source/blender/depsgraph/intern/depsgraph_eval.cc
+@@ -85,7 +85,9 @@ void DEG_evaluate_on_framechange(Depsgraph *graph,
+ 
+   deg_graph->tag_time_source();
+   deg_graph->frame = frame;
+-  deg_graph->ctime = BKE_scene_frame_to_ctime(scene, frame);
++  /* The requested frame already includes its subframe. It may differ from the original
++   * scene's time when sampling motion without moving the scene's timeline. */
++  deg_graph->ctime = frame * scene->r.framelen;
+   deg_flush_updates_and_refresh(deg_graph, sync_writeback);
+ }
+ 
+diff --git a/source/blender/depsgraph/intern/eval/deg_eval_copy_on_write.cc b/source/blender/depsgraph/intern/eval/deg_eval_copy_on_write.cc
+index a5ae380ee57..18e654c3aed 100644
+--- a/source/blender/depsgraph/intern/eval/deg_eval_copy_on_write.cc
++++ b/source/blender/depsgraph/intern/eval/deg_eval_copy_on_write.cc
+@@ -714,6 +714,9 @@ void update_id_after_copy(const Depsgraph *depsgraph,
+       Scene *scene_cow = id_cast<Scene *>(id_cow);
+       const Scene *scene_orig = id_cast<const Scene *>(id_orig);
+       scene_cow->toolsettings = scene_orig->toolsettings;
++      if (scene_orig == depsgraph->scene) {
++        BKE_scene_frame_set(scene_cow, depsgraph->frame);
++      }
+       scene_setup_view_layers_after_remap(depsgraph, id_node, reinterpret_cast<Scene *>(id_cow));
+       break;
+     }
+-- 
+2.55.0.windows.5
+
