@@ -57,8 +57,3 @@ v0.1 is the first known-good implementation.
 
 A completely fresh build verification is currently being performed.
 
-## Notes
-
-Real-time timeline playback is not currently a target.
-The primary use case is true Cycles motion blur in a progressively
-rendered viewport while stopped on a frame.
