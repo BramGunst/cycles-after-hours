@@ -1,0 +1,1306 @@
+From c5d85c2348e1492102f77d4d91efab348b41b891 Mon Sep 17 00:00:00 2001
+From: Bram Gunst <bram.gunst@gmail.com>
+Date: Wed, 16 Sep 2026 09:45:55 +0200
+Subject: [PATCH] Add Cycles After Hours docs and regression suite
+
+---
+ cycles_after_hours/CHANGELOG.md               |  27 ++
+ cycles_after_hours/FEATURES.md                |  14 +
+ cycles_after_hours/README.md                  |  49 ++++
+ .../features/viewport-motion-blur/README.md   |  66 +++++
+ .../viewport-motion-blur/implementation.md    |  54 ++++
+ .../viewport-motion-blur/provenance.md        |  68 +++++
+ .../features/viewport-motion-blur/testing.md  |  63 +++++
+ .../scenes/motion-test.blend                  |   3 +
+ .../scripts/accumulation-check.py             |  67 +++++
+ .../scripts/accumulation-test.py              | 129 +++++++++
+ .../scripts/motion-steps-metrics.py           |  44 +++
+ .../scripts/motion-steps-stress.py            | 172 ++++++++++++
+ .../scripts/viewport-motion-metrics.py        |  57 ++++
+ .../scripts/viewport-motion-test.py           | 255 ++++++++++++++++++
+ cycles_after_hours/tools/run_regressions.py   | 107 ++++++++
+ 15 files changed, 1175 insertions(+)
+ create mode 100644 cycles_after_hours/CHANGELOG.md
+ create mode 100644 cycles_after_hours/FEATURES.md
+ create mode 100644 cycles_after_hours/README.md
+ create mode 100644 cycles_after_hours/docs/features/viewport-motion-blur/README.md
+ create mode 100644 cycles_after_hours/docs/features/viewport-motion-blur/implementation.md
+ create mode 100644 cycles_after_hours/docs/features/viewport-motion-blur/provenance.md
+ create mode 100644 cycles_after_hours/docs/features/viewport-motion-blur/testing.md
+ create mode 100644 cycles_after_hours/tests/viewport-motion-blur/scenes/motion-test.blend
+ create mode 100644 cycles_after_hours/tests/viewport-motion-blur/scripts/accumulation-check.py
+ create mode 100644 cycles_after_hours/tests/viewport-motion-blur/scripts/accumulation-test.py
+ create mode 100644 cycles_after_hours/tests/viewport-motion-blur/scripts/motion-steps-metrics.py
+ create mode 100644 cycles_after_hours/tests/viewport-motion-blur/scripts/motion-steps-stress.py
+ create mode 100644 cycles_after_hours/tests/viewport-motion-blur/scripts/viewport-motion-metrics.py
+ create mode 100644 cycles_after_hours/tests/viewport-motion-blur/scripts/viewport-motion-test.py
+ create mode 100644 cycles_after_hours/tools/run_regressions.py
+
+diff --git a/cycles_after_hours/CHANGELOG.md b/cycles_after_hours/CHANGELOG.md
+new file mode 100644
+index 00000000000..bfbb286cb7b
+--- /dev/null
++++ b/cycles_after_hours/CHANGELOG.md
+@@ -0,0 +1,27 @@
++# Changelog
++
++## Repository organization
++
++- Establish Cycles After Hours project documentation in an isolated support area.
++- Designate the existing implementation Feature 001 — Viewport Motion Blur.
++- Import reusable regression scripts and scene; parameterize new result locations.
++- Preserve implementation, upstream documentation and historical release evidence.
++
++## Viewport Motion Blur v0.1.1
++
++- Historical standalone Feature 001 release, based on Blender 5.2.2 LTS.
++- Fix motion-buffer corruption when changing object Motion Steps, including
++  offset changes when the total buffer size stays constant.
++- Clean compilation, linking and INSTALL succeeded; automated CPU regressions passed.
++- Tag: `viewport-motion-blur-v0.1.1`.
++- Commit: `a500f2f7eb7e50c40283f4da7e1a21a4761b0115`.
++
++## Viewport Motion Blur v0.1
++
++- Historical initial standalone release of true Cycles rendered-viewport motion blur.
++- Includes viewport sampling, frame/subframe restoration and accumulation safeguards.
++- Tag: `viewport-motion-blur-v0.1`.
++- Implementation commit: `5dad52a8460`.
++
++Future release versions will describe Cycles After Hours as a whole. No new release
++version or tag is established by this migration.
+diff --git a/cycles_after_hours/FEATURES.md b/cycles_after_hours/FEATURES.md
+new file mode 100644
+index 00000000000..117aff8bb96
+--- /dev/null
++++ b/cycles_after_hours/FEATURES.md
+@@ -0,0 +1,14 @@
++# Cycles After Hours — Features
++
++## 001 — Viewport Motion Blur
++
++**Status:** Implemented and regression tested on CPU in the verified v0.1.1 release.
++GPU-specific stress testing remains a manual validation step.
++
++Adds a Viewport Motion Blur checkbox under the existing Cycles Motion Blur toggle.
++Uses the existing Cycles motion system and per-object controls; F12 selection is
++independent of the new viewport checkbox.
++
++[Feature guide](docs/features/viewport-motion-blur/README.md) ·
++[Implementation](docs/features/viewport-motion-blur/implementation.md) ·
++[Testing](docs/features/viewport-motion-blur/testing.md)
+diff --git a/cycles_after_hours/README.md b/cycles_after_hours/README.md
+new file mode 100644
+index 00000000000..3f30ab1b077
+--- /dev/null
++++ b/cycles_after_hours/README.md
+@@ -0,0 +1,49 @@
++# Cycles After Hours
++
++Cycles After Hours is a custom Blender/Cycles build focused on adding useful
++rendering and viewport features that are not currently available in stock Cycles.
++It is an independent project, not an official Blender Foundation product.
++
++## Features
++
++### Feature 001 — Viewport Motion Blur
++
++Adds true Cycles motion blur to the Cycles rendered viewport. See the
++[feature index](FEATURES.md), [feature guide](docs/features/viewport-motion-blur/README.md),
++and [changelog](CHANGELOG.md).
++
++More features may be added over time. All completed features are intended to
++coexist in the same Cycles After Hours executable. Develop from the stable
++codebase, test the new work, and rerun every existing feature's regressions
++against that same executable before integration.
++
++## Repository organization
++
++This directory contains project-specific documentation, tests, a sample scene,
++and a regression runner. Blender/Cycles implementation stays in the standard
++upstream source layout. The upstream [README](../README.md), [license](../COPYING),
++build instructions and contribution information remain authoritative for Blender.
++No renderer code or build-system file was changed for this organizational migration.
++
++- `docs/features/viewport-motion-blur/`: behavior, implementation map and testing.
++- `tests/viewport-motion-blur/scripts/`: existing regression scenarios and checkers.
++- `tests/viewport-motion-blur/scenes/`: reusable saved test scene.
++- `tools/run_regressions.py`: runs all current feature regressions with one executable.
++
++See [testing instructions](docs/features/viewport-motion-blur/testing.md).
++Results belong outside the source tree, in a new directory for every run.
++Future builds may use `C:\blender-git\cycles-after-hours-builds\<build-name>`;
++the supported Blender build process still applies. This migration creates no build.
++
++## History and branch policy
++
++The original Feature 001 release remains `viewport-motion-blur-v0.1.1` at
++`a500f2f7eb7e50c40283f4da7e1a21a4761b0115`, based on Blender 5.2.2 LTS.
++Historical tags, builds, evidence and backups keep their original names.
++See [provenance and preservation](docs/features/viewport-motion-blur/provenance.md).
++
++The current branch remains `cycles-viewport-motion-blur`. After this migration is
++reviewed, a stable `cycles-after-hours` integration branch with short-lived
++`feature/<name>` branches would express the long-term project model. Keep upstream
++tracking separate and preserve release tags. A future repository slug of
++`cycles-after-hours` is recommended; no branch, remote or repository is renamed here.
+diff --git a/cycles_after_hours/docs/features/viewport-motion-blur/README.md b/cycles_after_hours/docs/features/viewport-motion-blur/README.md
+new file mode 100644
+index 00000000000..a3b0481f507
+--- /dev/null
++++ b/cycles_after_hours/docs/features/viewport-motion-blur/README.md
+@@ -0,0 +1,66 @@
++# Feature 001 — Viewport Motion Blur
++
++## Using the feature
++
++In Cycles Render Properties, expand **Motion Blur**. **Viewport Motion Blur** is
++directly under the existing master toggle, before Position. The new checkbox is
++off by default and requires master Motion Blur. Enable both and enter Rendered
++viewport shading while paused on an animated frame.
++
++This uses the existing true Cycles shutter-time motion system. It is not vector
++blur, a screen-space filter, or previous-frame smearing. No separate viewport
++motion sample controls are introduced.
++
++## Existing controls
++
++- **Shutter, Position and curve:** reuse Cycles shutter configuration. Rolling
++  shutter uses the existing camera/kernel path.
++- **Object Use Motion Blur:** disables motion sampling for that object as in the
++  existing Cycles object controls.
++- **Motion Steps:** uses each object's existing motion-step count. Higher settings
++  sample curved rotation more accurately; a rotating blade is a useful comparison.
++  Changing one object's settings must not corrupt other objects' motion data.
++- **Deformation Motion:** reuses existing deformation samples where supported.
++  Tests cover shape-key deformation and stable-topology Geometry Nodes deformation.
++- **Camera motion:** camera view samples animated cameras alongside animated objects.
++  Free-perspective navigation itself does not represent a shutter-time camera animation.
++- **Frame/subframe edits:** sample evaluation restores original and evaluated time,
++  including negative fractional frames, without moving the user's timeline through
++  shutter samples.
++- **Accumulation:** a paused viewport should keep accumulating normally after edits
++  settle. The tests check actual render batches and resets, not just identical images.
++- **GPU Compute and denoising:** existing device and denoising paths remain in place.
++  Automated evidence is CPU-based and includes OpenImageDenoise; it does not prove
++  every GPU backend or driver configuration.
++- **F12:** the viewport checkbox does not select final-render motion blur. Existing
++  master and object controls still apply. The regression compares checkbox off/on
++  pairs and retains the original F12 image baseline.
++
++## Example scene
++
++Open [motion-test.blend](../../../tests/viewport-motion-blur/scenes/motion-test.blend).
++It contains an animated cube and camera at frame 50. Enable Rendered shading,
++toggle Viewport Motion Blur, vary shutter 0.5/1.0 and Position, and compare F12 with
++the viewport checkbox off/on. Use a separate save location if editing this fixture.
++
++## Limits and manual checks
++
++Correct paused-frame rendering is the priority; real-time playback is not a target.
++The automated suite uses small CPU scenes. Arbitrary simulations/caches, changing
++topology, hair/particles, advanced camera projections, multi-window/undo behavior,
++and long sessions are not exhaustively validated. Viewport/final visibility and
++modifier differences still apply. Custom shutter curves are reused but not separately
++exercised by the current suite.
++
++Handler-driven animation or drivers explicitly reading the original timeline can
++differ from F12: shutter sampling deliberately does not move that timeline or invoke
++frame handlers. Inactive depsgraph evaluation does not establish support for arbitrary
++uncached simulations.
++
++Manually stress the production GPU scene in free perspective and camera view, with
++denoising off/on. Let samples accumulate, orbit and stop, change frame/subframe and
++shutter, edit Motion Steps repeatedly on several objects, and toggle deformation.
++Compare representative F12 renders with the viewport checkbox off/on.
++
++[Implementation map](implementation.md) · [Regression instructions](testing.md) ·
++[Historical evidence](provenance.md)
+diff --git a/cycles_after_hours/docs/features/viewport-motion-blur/implementation.md b/cycles_after_hours/docs/features/viewport-motion-blur/implementation.md
+new file mode 100644
+index 00000000000..d5c9369e554
+--- /dev/null
++++ b/cycles_after_hours/docs/features/viewport-motion-blur/implementation.md
+@@ -0,0 +1,54 @@
++# Feature 001 — implementation map
++
++The implementation is preserved at historical commit
++`a500f2f7eb7e50c40283f4da7e1a21a4761b0115`. These are all implementation files
++changed relative to Blender release commit `d13f752e3b9`. Paths are relative to the
++repository root. None is moved or edited by the Cycles After Hours migration.
++
++| File | Responsibility |
++| --- | --- |
++| `intern/cycles/blender/addon/properties.py` | Viewport property and existing object motion-property update callbacks. |
++| `intern/cycles/blender/addon/ui.py` | One checkbox in the existing Motion Blur panel. |
++| `intern/cycles/blender/camera.cpp` | Viewport shutter/camera sampling and preserving sampled camera state across redraws. |
++| `intern/cycles/blender/object.cpp` | Existing object transform/deformation sampling enabled for the viewport path; scoped evaluated-time restoration. |
++| `intern/cycles/blender/session.cpp` | Trigger motion synchronization during viewport scene updates. |
++| `intern/cycles/blender/sync.cpp` | Motion requirements and resynchronization of motion geometry. |
++| `intern/cycles/blender/sync.h` | Synchronization state declarations. |
++| `intern/cycles/scene/object.cpp` | Recompute packed motion transforms when buffer allocation or object offsets change. |
++| `intern/cycles/scene/scene.cpp` | Upload pending camera shutter lookup-table data during resolution updates. |
++| `source/blender/depsgraph/intern/depsgraph_eval.cc` | Preserve fractional evaluation time. |
++| `source/blender/depsgraph/intern/eval/deg_eval_copy_on_write.cc` | Preserve scene frame/subframe when copying evaluated state. |
++
++## Reused motion pipeline
++
++The new property gates viewport motion requirements together with existing scene and
++view-layer controls. Final-render selection remains independent of the new property.
++Existing object/camera shutter times, transform and deformation arrays, motion BVH
++and Cycles kernels perform the rendering. There is no alternate viewport blur algorithm.
++
++The existing per-object sampling helper supplies the motion count (for example,
++3 transform samples at Motion Steps 1 and 17 at Motion Steps 4), subject to existing
++geometry and velocity-cache behavior. The tests check two and sixteen distinct
++nonzero relative sample times respectively; the center sample accounts for the
++remaining entry. Existing object/deformation toggles remain authoritative.
++
++Viewport sampling temporarily evaluates the depsgraph with writeback disabled and
++restores evaluation time and active state. It does not drive the original scene
++timeline through shutter times. Motion geometry refresh occurs on requested scene
++synchronization, not on every render sample.
++
++## Preserved fixes
++
++Progressive viewport resolution changes can leave shutter lookup-table data pending.
++Uploading it before rendering prevents the repeated reset loop documented in the
++accumulation investigation. The log checker verifies forward sample progress after
++settling, rather than assuming identical screenshots imply convergence.
++
++Changing object Motion Steps can reallocate the packed transform buffer or move an
++unchanged object's offset. All affected decomposed transforms must be regenerated,
++including when the total size stays constant. The v0.1.1 fix addresses both cases;
++the multi-object regression checks that unrelated objects remain intact.
++
++Device backends, denoising implementation and final-render kernels were not replaced.
++The shared synchronization path is exercised by CPU tests; GPU behavior still needs
++backend-specific manual verification. See [testing](testing.md) for the actual scope.
+diff --git a/cycles_after_hours/docs/features/viewport-motion-blur/provenance.md b/cycles_after_hours/docs/features/viewport-motion-blur/provenance.md
+new file mode 100644
+index 00000000000..03158b22c86
+--- /dev/null
++++ b/cycles_after_hours/docs/features/viewport-motion-blur/provenance.md
+@@ -0,0 +1,68 @@
++# Feature 001 — provenance and historical preservation
++
++## Import inventory
++
++Before migration the source repository had no tracked project-specific support files.
++The upstream root README, licenses, `doc/`, `tests/`, and build helpers were preserved.
++There were consequently no tracked moves or renames requiring `git mv`.
++
++These reusable files were copied from `C:\blender-git\` into
++`cycles_after_hours/tests/viewport-motion-blur/scripts/`:
++
++- `viewport-motion-test.py`
++- `viewport-motion-metrics.py`
++- `motion-steps-stress.py`
++- `motion-steps-metrics.py`
++- `accumulation-test.py`
++- `accumulation-check.py`
++
++Only the first five needed output-root changes; the checker is unchanged.
++`C:\blender-git\viewport-motion-tests\motion-test.blend` was copied byte-for-byte
++to `cycles_after_hours/tests/viewport-motion-blur/scenes/motion-test.blend`.
++Original files remain in place because historical reports and verification hashes
++refer to them. No generated screenshots, old logs or backup patches are imported
++into the source repository.
++
++## Frozen release
++
++`viewport-motion-blur-v0.1.1` remains at
++`a500f2f7eb7e50c40283f4da7e1a21a4761b0115`. Historical names identify an actual
++standalone release, not stale project branding, and must remain unchanged.
++
++Actual verified executable on this machine:
++
++```text
++C:\blender-git\build\_windows\_x64\_vc17\_Release\_v0.1.1\_fresh\bin\Release\blender.exe
++```
++
++The flat path `C:\blender-git\build_windows_x64_vc17_Release_v0.1.1_fresh`
++was named in the migration request but was not present during inspection. The
++existing nested build was verified as Blender 5.2.2 LTS, hash `a500f2f7eb7e`, branch
++`cycles-viewport-motion-blur`. No build was moved or renamed to reconcile the paths.
++
++Also preserved:
++
++- Development build: `C:\blender-git\build_windows_x64_vc17_Release`.
++- v0.1 fresh build: `C:\blender-git\build_windows_x64_vc17_Release_v0.1_fresh`.
++- v0.1.1 evidence: `C:\blender-git\release-v0.1.1-verification`.
++- Additional v0.1.1 results in `motion-steps-tests\release-v0.1.1` and
++  `accumulation-tests\release-v0.1.1` / `release-v0.1.1-camera-denoise`.
++- Entire original `viewport-motion-tests`, `motion-steps-tests`, `accumulation-tests`,
++  `viewport-motion-blur-backup` and `viewport-motion-blur-backup-v0.1.1` directories.
++- Workspace-root scripts, logs, images/metrics and the original technical reports:
++  `viewport-motion-report.md`, `accumulation-report.md`, `motion-steps-report.md`.
++
++Those reports document earlier development states, including then-uncommitted work
++and superseded findings. They are historical evidence, not current Git status.
++The feature guide and implementation map consolidate their applicable findings;
++original reports remain available unchanged for the detailed investigation history.
++
++## Migration evidence
++
++New evidence lives separately at
++`C:\blender-git\cycles-after-hours-migration-verification`.
++It includes initial/final Git state, assertion comparison, the regression run and
++integrity manifests. The manifest covers historical workspace-root files and the
++complete evidence/backup directories above, plus each preserved build's executable
++and CMake cache. Build trees were not exhaustively hashed; no build command is run.
++Future results must use new directories and must not overwrite this or release evidence.
+diff --git a/cycles_after_hours/docs/features/viewport-motion-blur/testing.md b/cycles_after_hours/docs/features/viewport-motion-blur/testing.md
+new file mode 100644
+index 00000000000..fdadda107c0
+--- /dev/null
++++ b/cycles_after_hours/docs/features/viewport-motion-blur/testing.md
+@@ -0,0 +1,63 @@
++# Feature 001 — regression testing
++
++## Run the suite
++
++Use a Python 3.11+ interpreter (the verified Blender's bundled Python works) and
++one explicit Blender executable. On Windows an interactive desktop is required:
++these are scripted GUI viewport tests as well as background render checks.
++The runner requests hidden process startup; Blender may show its render windows.
++The saved scene follows Blender's existing Git LFS rules. Ensure Git LFS has
++materialized `tests/viewport-motion-blur/scenes/motion-test.blend` before running;
++the runner's scene-load check rejects a missing or unresolved fixture.
++
++```powershell
++& 'C:\blender-git\build\_windows\_x64\_vc17\_Release\_v0.1.1\_fresh\bin\Release\5.2\python\bin\python.exe' -B `
++  'C:\blender-git\blender\cycles_after_hours\tools\run_regressions.py' `
++  --blender 'C:\blender-git\build\_windows\_x64\_vc17\_Release\_v0.1.1\_fresh\bin\Release\blender.exe' `
++  --output-root 'C:\blender-git\cycles-after-hours-migration-verification\run-01'
++```
++
++Choose a **new output directory** on each run; the runner refuses existing paths.
++The example above is the migration run and must not be reused. Keep results outside
++source and build directories, for example under
++`C:\blender-git\cycles-after-hours-regression-results\<unique-run-name>`.
++No build, package, Git mutation or source diagnostic is part of the runner.
++
++The runner sets `CAH_TEST_OUTPUT_ROOT` for its child processes. Five migrated scripts
++use that required environment variable instead of the old absolute result roots.
++Existing `--case=...` names still select subdirectories within Motion Steps and
++accumulation results. For direct invocation, explicitly set the variable to a new
++result root first. The accumulation checker still takes its log path as an argument.
++
++## Existing scenarios and assertions
++
++| Scripts | Coverage |
++| --- | --- |
++| `viewport-motion-test.py` (background) | Default checkbox, five F12 off/on pairs, original pixel baseline, frame preservation; regenerates a scene under results. |
++| `viewport-motion-test.py` (GUI), `viewport-motion-metrics.py` | 26 stages: transform, rotation, scale, deformation, Geometry Nodes, animated camera, navigation, drivers, frame/subframe and shutter behavior. Image extent, settled hashes and time assertions. |
++| Same GUI script with `--rolling` | 5 stages: rolling shutter, duration, denoising and animated-object deletion; checked with viewport metrics. |
++| `motion-steps-stress.py --extended`, `motion-steps-metrics.py --require-pass` | 74 stages: repeated slow/rapid Motion Steps edits, unrelated-object integrity, equal-size buffer layout swaps, object/deformation toggles, camera/object, shutter, frame/subframe, navigation and duplication/deletion. |
++| `accumulation-test.py`, `accumulation-check.py --require-pass` | 14 stages, six captures each: continued full-resolution samples after settling, no repeated resets, motion-time counts for low/high steps and no motion samples for Object Use Motion Blur off. |
++| Same accumulation scripts with `--camera --end --denoise --diagnose` | 3 stages combining animated camera/object motion, END shutter and viewport denoising. |
++
++The runner also opens the imported scene without saving it, verifies its enabled
++viewport property and frame, records executable/script hashes and version, checks
++GUI error files and exact completion counts, and stops on the first failure.
++It writes `summary.json`, logs, screenshots, scene and metrics under the new root.
++Original test scenarios and assertions were retained; only result-path setup changed.
++
++The F12 baseline is an existing image hash and checkbox off/on comparison, not a new
++comparison against a separate stock-Blender executable. All automated renders select
++CPU. OpenImageDenoise coverage does not establish GPU device/backend coverage.
++See the [manual checklist and limitations](README.md#limits-and-manual-checks).
++
++## Interpreting failures
++
++Check the failing log, `summary.json`, and any `*error.txt` first. Missing assets,
++incorrect script paths or output paths are tooling issues. Preserve failed evidence.
++Do not relax image, timing or motion assertions to obtain a pass. A renderer failure
++requires a separate development investigation; frozen release source is not patched
++as part of an organizational migration.
++
++Future feature suites should be added to the same runner and use its one executable
++argument, so integration runs exercise every completed feature together.
+diff --git a/cycles_after_hours/tests/viewport-motion-blur/scenes/motion-test.blend b/cycles_after_hours/tests/viewport-motion-blur/scenes/motion-test.blend
+new file mode 100644
+index 00000000000..1e789f38e23
+--- /dev/null
++++ b/cycles_after_hours/tests/viewport-motion-blur/scenes/motion-test.blend
+@@ -0,0 +1,3 @@
++version https://git-lfs.github.com/spec/v1
++oid sha256:662818a9e1e5074a65cdd425c10c64683d749f1b9245f5b9fc366b73507f1b86
++size 96307
+diff --git a/cycles_after_hours/tests/viewport-motion-blur/scripts/accumulation-check.py b/cycles_after_hours/tests/viewport-motion-blur/scripts/accumulation-check.py
+new file mode 100644
+index 00000000000..831fe9ae525
+--- /dev/null
++++ b/cycles_after_hours/tests/viewport-motion-blur/scripts/accumulation-check.py
+@@ -0,0 +1,67 @@
++"""Check Cycles debug logs from accumulation-test.py, without custom source diagnostics.
++
++Run with the bundled Python: accumulation-check.py LOG [--require-pass].
++Screenshots supplement these scheduler checks with the visible GUI sample count.
++"""
++import json
++import pathlib
++import re
++import sys
++
++stages = {}
++stage = None
++divider = None
++pending_reset = False
++for line in pathlib.Path(sys.argv[1]).read_text(errors='replace').splitlines():
++    match = re.search(r'MBTEST BEGIN (\w+)', line)
++    if match:
++        stage = stages.setdefault(match[1], {
++            'resets': 0, 'samples_since_reset': 0, 'largest_batch': 0,
++            'captures': [], 'motion_times': [], 'resets_since_capture': 0,
++        })
++    if stage is None:
++        continue
++    if 'Calculated resolution divider is' in line:
++        pending_reset = True
++    match = re.search(r'Will path trace \d+ samples at the resolution divider (\d+)', line)
++    if match:
++        next_divider = int(match[1])
++        if pending_reset or (divider is not None and next_divider > divider):
++            stage['resets'] += 1
++            stage['resets_since_capture'] += 1
++            stage['samples_since_reset'] = 0
++        if next_divider != divider:
++            stage['samples_since_reset'] = 0
++        divider = next_divider
++        pending_reset = False
++    match = re.search(r'Rendered (\d+) samples in', line)
++    if match and divider == 1:
++        batch = int(match[1])
++        stage['samples_since_reset'] += batch
++        stage['largest_batch'] = max(stage['largest_batch'], batch)
++    match = re.search(r'Synchronizing motion for the relative time ([-\d.]+)', line)
++    if match:
++        stage['motion_times'].append(float(match[1].rstrip('.')))
++    if 'MBTEST CAPTURE' in line:
++        stage['captures'].append({
++            'samples': stage['samples_since_reset'],
++            'resets': stage['resets_since_capture'],
++        })
++        stage['resets_since_capture'] = 0
++
++print(json.dumps(stages, indent=2))
++if '--require-pass' in sys.argv:
++    assert stages, 'No test stages found'
++    for name, result in stages.items():
++        captures = result['captures']
++        assert len(captures) == 6, (name, 'incomplete', captures)
++        # Denoising can make a two-thread CPU run slow. Check convergence, not throughput.
++        assert captures[-1]['samples'] > 1, (name, result)
++        assert all(c['resets'] == 0 for c in captures[2:]), (name, result)
++        assert captures[-1]['samples'] > captures[2]['samples'], (name, result)
++    for name, count in [('rotation_low', 2), ('rotation_high', 16), ('deform_high', 16)]:
++        if name in stages:
++            assert len(set(stages[name]['motion_times'])) == count, (name, stages[name])
++    if 'object_off' in stages:
++        assert not stages['object_off']['motion_times'], stages['object_off']
++    print('ACCUMULATION_CHECK_PASS')
+diff --git a/cycles_after_hours/tests/viewport-motion-blur/scripts/accumulation-test.py b/cycles_after_hours/tests/viewport-motion-blur/scripts/accumulation-test.py
+new file mode 100644
+index 00000000000..622ac703bd1
+--- /dev/null
++++ b/cycles_after_hours/tests/viewport-motion-blur/scripts/accumulation-test.py
+@@ -0,0 +1,129 @@
++import bpy
++import pathlib
++import os
++import sys
++import time
++import json
++import math
++from mathutils import Quaternion
++
++bpy.context.preferences.view.show_splash = False
++case = next((arg.split('=', 1)[1] for arg in sys.argv if arg.startswith('--case=')), 'default')
++root = (pathlib.Path(os.environ['CAH_TEST_OUTPUT_ROOT']) / 'accumulation-tests') / case
++root.mkdir(parents=True, exist_ok=True)
++scene = bpy.context.scene
++bpy.ops.object.select_all(action='SELECT')
++bpy.ops.object.delete(use_global=False)
++bpy.ops.mesh.primitive_cube_add()
++cube = bpy.context.object
++cube.scale = (0.4, 0.4, 0.4)
++material = bpy.data.materials.new('Accumulation Test Emission')
++nodes = material.node_tree.nodes
++nodes.clear()
++emission = nodes.new('ShaderNodeEmission')
++emission.inputs['Color'].default_value = (1, .05, .01, 1)
++output = nodes.new('ShaderNodeOutputMaterial')
++material.node_tree.links.new(emission.outputs[0], output.inputs['Surface'])
++cube.data.materials.append(material)
++for frame, x in [(49, -5), (50, 0), (51, 5)]:
++    cube.location.x = x
++    cube.keyframe_insert(data_path='location', frame=frame)
++scene.render.engine = 'CYCLES'
++scene.cycles.device = 'CPU'
++scene.cycles.preview_samples = 4096
++scene.cycles.use_preview_adaptive_sampling = False
++scene.cycles.use_preview_denoising = False
++# Keep a sample in flight long enough to expose synchronization feedback.
++scene.render.threads_mode = 'FIXED'
++scene.render.threads = 2
++scene.render.use_motion_blur = True
++scene.cycles.use_viewport_motion_blur = True
++scene.render.motion_blur_shutter = 0.5
++scene.frame_set(50)
++if '--camera' in sys.argv:
++    bpy.ops.object.camera_add(location=(0, 0, 12))
++    scene.camera = bpy.context.object
++    scene.camera.data.lens = 50
++    for frame, x in [(49, -1), (50, 0), (51, 1)]:
++        scene.camera.location.x = x
++        scene.camera.keyframe_insert(data_path='location', frame=frame)
++    scene.frame_set(50)
++if '--end' in sys.argv:
++    scene.render.motion_blur_position = 'END'
++if '--denoise' in sys.argv:
++    scene.cycles.use_preview_denoising = True
++area = next(a for a in bpy.context.screen.areas if a.type == 'VIEW_3D')
++space = area.spaces.active
++space.region_3d.view_location = (0, 0, 0)
++space.region_3d.view_distance = 12
++space.region_3d.view_perspective = 'PERSP'
++if '--camera' in sys.argv:
++    space.region_3d.view_perspective = 'CAMERA'
++space.shading.type = 'RENDERED'
++def deform():
++    cube.animation_data_clear()
++    cube.location = (0, 0, 0)
++    cube.shape_key_add(name='Basis')
++    key = cube.shape_key_add(name='Stretch')
++    for v in key.data:
++        v.co.x *= 5
++    for frame, value in [(49, 0), (50, .5), (51, 1)]:
++        key.value = value
++        key.keyframe_insert(data_path='value', frame=frame)
++    scene.frame_set(50)
++
++def rotation():
++    cube.shape_key_clear()
++    cube.animation_data_clear()
++    cube.location = (0, 0, 0)
++    cube.scale = (2, .15, .15)
++    for frame, angle in [(49, -math.pi), (50, 0), (51, math.pi)]:
++        cube.rotation_euler.z = angle
++        cube.keyframe_insert(data_path='rotation_euler', frame=frame)
++    cube.cycles.motion_steps = 1
++    scene.frame_set(50)
++
++stages = [
++    ('on_idle', lambda: None),
++    ('orbit', lambda: setattr(space.region_3d, 'view_rotation', Quaternion((0, 0, 1), .3) @ space.region_3d.view_rotation)),
++    ('frame', lambda: scene.frame_set(51)),
++    ('shutter', lambda: setattr(scene.render, 'motion_blur_shutter', .75)),
++    ('off', lambda: setattr(scene.cycles, 'use_viewport_motion_blur', False)),
++    ('on_again', lambda: setattr(scene.cycles, 'use_viewport_motion_blur', True)),
++    ('deform', deform),
++    ('deform_high', lambda: setattr(cube.cycles, 'motion_steps', 4)),
++    ('deform_off', lambda: setattr(cube.cycles, 'use_deform_motion', False)),
++    ('deform_on', lambda: setattr(cube.cycles, 'use_deform_motion', True)),
++    ('rotation_low', rotation),
++    ('rotation_high', lambda: setattr(cube.cycles, 'motion_steps', 4)),
++    ('object_off', lambda: setattr(cube.cycles, 'use_motion_blur', False)),
++    ('object_on', lambda: setattr(cube.cycles, 'use_motion_blur', True)),
++]
++if '--diagnose' in sys.argv:
++    stages = [stages[0], stages[4], stages[5]]
++index = -1
++step = 0
++def tick():
++    global index, step
++    try:
++        if index >= 0:
++            bpy.ops.screen.screenshot(filepath=str(root / f'{stages[index][0]}_{step}.png'))
++            print('MBTEST CAPTURE', stages[index][0], step, flush=True)
++        if index < 0 or step == 5:
++            index += 1
++            step = 0
++            if index == len(stages):
++                (root / 'result.json').write_text(json.dumps([s[0] for s in stages]))
++                bpy.ops.wm.quit_blender()
++                return None
++            print('MBTEST BEGIN', stages[index][0], flush=True)
++            stages[index][1]()
++        else:
++            step += 1
++        return 2.0
++    except Exception:
++        import traceback
++        (root / 'error.txt').write_text(traceback.format_exc())
++        bpy.ops.wm.quit_blender()
++        return None
++bpy.app.timers.register(tick, first_interval=2.0)
+diff --git a/cycles_after_hours/tests/viewport-motion-blur/scripts/motion-steps-metrics.py b/cycles_after_hours/tests/viewport-motion-blur/scripts/motion-steps-metrics.py
+new file mode 100644
+index 00000000000..9cbe60beb57
+--- /dev/null
++++ b/cycles_after_hours/tests/viewport-motion-blur/scripts/motion-steps-metrics.py
+@@ -0,0 +1,44 @@
++import bpy
++import pathlib
++import os
++import sys
++import json
++
++case = next((a.split('=', 1)[1] for a in sys.argv if a.startswith('--case=')), 'before')
++root = (pathlib.Path(os.environ['CAH_TEST_OUTPUT_ROOT']) / 'motion-steps-tests') / case
++results = {}
++for path in sorted(root.glob('*.png')):
++    image = bpy.data.images.load(str(path), check_existing=False)
++    pixels = image.pixels[:]
++    width, height = image.size
++    counts = dict(A=0, B=0, C=0, D=0)
++    for y in range(150, min(650, height)):
++        for x in range(150, min(700, width)):
++            p = (y * width + x) * 4
++            r, g, b = pixels[p:p+3]
++            if r > g + .1 and r > b + .1:
++                counts['A'] += 1
++            elif g > r + .1 and g > b + .1:
++                counts['B'] += 1
++            elif b > r + .1 and b > g + .1:
++                counts['C'] += 1
++            elif r > b + .1 and g > b + .1:
++                counts['D'] += 1
++    results[path.stem] = counts
++    bpy.data.images.remove(image)
++reference = results['initial']
++failures = []
++for name, counts in results.items():
++    if name.startswith('slow') or name == 'fast_settled':
++        for obj in ['B', 'C', 'D']:
++            if abs(counts[obj] - reference[obj]) > max(5, reference[obj] * .03):
++                failures.append((name, obj, reference[obj], counts[obj]))
++    for obj, count in counts.items():
++        if count < 200:
++            failures.append((name, obj, 'object missing', count))
++report = {'counts': results, 'failures': failures}
++(root / 'metrics.json').write_text(json.dumps(report, indent=2))
++print(json.dumps(report, indent=2))
++if '--require-pass' in sys.argv:
++    assert not failures, failures
++    print('MOTION_STEPS_IMAGE_CHECK_PASS')
+diff --git a/cycles_after_hours/tests/viewport-motion-blur/scripts/motion-steps-stress.py b/cycles_after_hours/tests/viewport-motion-blur/scripts/motion-steps-stress.py
+new file mode 100644
+index 00000000000..edf7c3844a3
+--- /dev/null
++++ b/cycles_after_hours/tests/viewport-motion-blur/scripts/motion-steps-stress.py
+@@ -0,0 +1,172 @@
++"""Multi-object rendered viewport regression. Run in a Blender GUI process."""
++import bpy
++import json
++import math
++import pathlib
++import os
++import sys
++from mathutils import Quaternion
++
++case = next((a.split('=', 1)[1] for a in sys.argv if a.startswith('--case=')), 'baseline')
++root = (pathlib.Path(os.environ['CAH_TEST_OUTPUT_ROOT']) / 'motion-steps-tests') / case
++root.mkdir(parents=True, exist_ok=True)
++bpy.context.preferences.view.show_splash = False
++scene = bpy.context.scene
++bpy.ops.object.select_all(action='SELECT')
++bpy.ops.object.delete(use_global=False)
++scene.render.engine = 'CYCLES'
++scene.cycles.device = 'CPU'
++scene.cycles.preview_samples = 32 if '--denoise' in sys.argv else 64
++scene.cycles.use_preview_adaptive_sampling = False
++scene.cycles.use_preview_denoising = '--denoise' in sys.argv
++scene.render.use_motion_blur = True
++scene.render.motion_blur_shutter = .8
++scene.cycles.use_viewport_motion_blur = True
++scene.world.color = (0, 0, 0)
++
++def cube(name, location, color):
++    bpy.ops.mesh.primitive_cube_add(size=1, location=location)
++    obj = bpy.context.object
++    obj.name = name
++    mat = bpy.data.materials.new(name)
++    nodes = mat.node_tree.nodes
++    nodes.clear()
++    emission = nodes.new('ShaderNodeEmission')
++    emission.inputs['Color'].default_value = (*color, 1)
++    output = nodes.new('ShaderNodeOutputMaterial')
++    mat.node_tree.links.new(emission.outputs[0], output.inputs['Surface'])
++    obj.data.materials.append(mat)
++    return obj
++
++a = cube('A_Red_Rotor', (-2, 2, 0), (1, .01, .01))
++a.scale = (2.2, .25, .25)
++for frame, angle in [(49, -math.pi), (50, 0), (51, math.pi)]:
++    a.rotation_euler.z = angle
++    a.keyframe_insert(data_path='rotation_euler', frame=frame)
++a.cycles.motion_steps = 1
++b = cube('B_Green_Moving', (2, 2, 0), (.01, 1, .01))
++for frame, y in [(49, 1), (50, 2), (51, 3)]:
++    b.location.y = y
++    b.keyframe_insert(data_path='location', frame=frame)
++b.cycles.motion_steps = 3
++c = cube('C_Blue_Static', (-2, -2, 0), (.01, .01, 1))
++c.cycles.use_motion_blur = False
++d = cube('D_Yellow_Deforming', (2, -2, 0), (1, 1, .01))
++d.shape_key_add(name='Basis')
++key = d.shape_key_add(name='Stretch')
++for v in key.data:
++    v.co.x *= 2.5
++for frame, value in [(49, 0), (50, .5), (51, 1)]:
++    key.value = value
++    key.keyframe_insert(data_path='value', frame=frame)
++d.cycles.motion_steps = 2
++scene.frame_set(50)
++area = next(x for x in bpy.context.screen.areas if x.type == 'VIEW_3D')
++space = area.spaces.active
++space.region_3d.view_rotation = Quaternion((1, 0, 0, 0))
++space.region_3d.view_location = (0, 0, 0)
++space.region_3d.view_distance = 12
++space.region_3d.view_perspective = 'ORTHO'
++space.overlay.show_overlays = False
++space.show_gizmo = False
++space.shading.type = 'RENDERED'
++
++sequence = [1, 2, 4, 1, 3, 4, 2]
++stages = [('initial', lambda: None, 4.0)]
++for repeat in range(2):
++    for i, steps in enumerate(sequence):
++        stages.append((f'slow_{repeat}_{i}_{steps}',
++                       lambda s=steps: setattr(a.cycles, 'motion_steps', s), 3.0))
++for repeat in range(4):
++    for i, steps in enumerate(sequence):
++        stages.append((f'fast_{repeat}_{i}_{steps}',
++                       lambda s=steps: setattr(a.cycles, 'motion_steps', s), .12))
++stages.append(('fast_settled', lambda: None, 4.0))
++for name, obj in [('b', b), ('d', d), ('a', a), ('b_again', b)]:
++    for steps in [1, 4, 2]:
++        stages.append((f'multi_{name}_{steps}',
++                       lambda o=obj, s=steps: setattr(o.cycles, 'motion_steps', s), 2.0))
++stages.append(('final_settled', lambda: None, 4.0))
++if '--extended' in sys.argv:
++    def deform_transform():
++        for frame, x in [(49, 1.5), (50, 2), (51, 2.5)]:
++            d.location.x = x
++            d.keyframe_insert(data_path='location', frame=frame)
++        a.cycles.motion_steps = 1
++        d.cycles.motion_steps = 4
++        scene.frame_set(50)
++    def equal_size_swap(reverse=False):
++        a.cycles.motion_steps = 1 if reverse else 4
++        d.cycles.motion_steps = 4 if reverse else 1
++    def camera_motion():
++        bpy.ops.object.camera_add(location=(0, 0, 15))
++        camera = bpy.context.object
++        camera.data.type = 'ORTHO'
++        camera.data.ortho_scale = 12
++        for frame, x in [(49, -1), (50, 0), (51, 1)]:
++            camera.location.x = x
++            camera.keyframe_insert(data_path='location', frame=frame)
++        scene.camera = camera
++        scene.frame_set(50)
++        space.region_3d.view_perspective = 'CAMERA'
++    duplicate = None
++    def duplicate_object():
++        global duplicate
++        duplicate = b.copy()
++        duplicate.data = b.data.copy()
++        duplicate.delta_location = (0, 0, -1)
++        scene.collection.objects.link(duplicate)
++    def delete_duplicate():
++        bpy.data.objects.remove(duplicate, do_unlink=True)
++    stages += [
++        ('layout_setup', deform_transform, 4.0),
++        ('equal_size_swap', equal_size_swap, 4.0),
++        ('equal_size_swap_back', lambda: equal_size_swap(True), 4.0),
++        ('object_off', lambda: setattr(a.cycles, 'use_motion_blur', False), 4.0),
++        ('object_on', lambda: setattr(a.cycles, 'use_motion_blur', True), 4.0),
++        ('deformation_off', lambda: setattr(d.cycles, 'use_deform_motion', False), 4.0),
++        ('deformation_on', lambda: setattr(d.cycles, 'use_deform_motion', True), 4.0),
++        ('frame', lambda: scene.frame_set(51), 4.0),
++        ('subframe', lambda: scene.frame_set(50, subframe=.25), 4.0),
++        ('shutter', lambda: setattr(scene.render, 'motion_blur_shutter', .5), 4.0),
++        ('shutter_start', lambda: setattr(scene.render, 'motion_blur_position', 'START'), 4.0),
++        ('shutter_end', lambda: setattr(scene.render, 'motion_blur_position', 'END'), 4.0),
++        ('camera_motion', camera_motion, 4.0),
++        ('navigation', lambda: (setattr(space.region_3d, 'view_perspective', 'ORTHO'),
++             setattr(space.region_3d, 'view_rotation', Quaternion((1, 0, 0), .2))), 4.0),
++        ('duplicate', duplicate_object, 4.0),
++        ('delete_duplicate', delete_duplicate, 4.0),
++        ('end_settled', lambda: None, 4.0),
++    ]
++index = -1
++results = []
++expected_time = 50
++
++def tick():
++    global index, expected_time
++    try:
++        if index >= 0:
++            name, _, delay = stages[index]
++            if delay >= 2:
++                bpy.ops.screen.screenshot(filepath=str(root / f'{name}.png'))
++            assert scene.frame_current_final == expected_time
++            assert bpy.context.evaluated_depsgraph_get().scene_eval.frame_current_final == expected_time
++            print('STEPS_CAPTURE', name, flush=True)
++            results.append(name)
++        index += 1
++        if index == len(stages):
++            (root / 'result.json').write_text(json.dumps(results))
++            bpy.ops.wm.quit_blender()
++            return None
++        name, action, delay = stages[index]
++        print('STEPS_BEGIN', name, flush=True)
++        action()
++        expected_time = scene.frame_current_final
++        return delay
++    except Exception:
++        import traceback
++        (root / 'error.txt').write_text(traceback.format_exc())
++        bpy.ops.wm.quit_blender()
++        return None
++
++bpy.app.timers.register(tick, first_interval=2.0)
+diff --git a/cycles_after_hours/tests/viewport-motion-blur/scripts/viewport-motion-metrics.py b/cycles_after_hours/tests/viewport-motion-blur/scripts/viewport-motion-metrics.py
+new file mode 100644
+index 00000000000..683ff051132
+--- /dev/null
++++ b/cycles_after_hours/tests/viewport-motion-blur/scripts/viewport-motion-metrics.py
+@@ -0,0 +1,57 @@
++import bpy
++import pathlib
++import os
++import hashlib
++import array
++import json
++
++root = (pathlib.Path(os.environ['CAH_TEST_OUTPUT_ROOT']) / 'viewport-motion-tests')
++results = {}
++for path in root.glob('*.png'):
++    image = bpy.data.images.load(str(path), check_existing=False)
++    width, height = image.size
++    if width != 1000:
++        continue
++    pixels = image.pixels[:]
++    xs, ys, crop = [], [], array.array('f')
++    for y in range(150, 620):
++        for x in range(100, 790):
++            offset = (y * width + x) * 4
++            r, g, b, a = pixels[offset:offset+4]
++            crop.extend((r, g, b, a))
++            if r - g > 0.06 and r - b > 0.06:
++                xs.append(x)
++                ys.append(y)
++    results[path.stem] = {
++        'bbox': [min(xs), max(xs), min(ys), max(ys)] if xs else None,
++        'colored_pixels': len(xs),
++        'pixel_hash': hashlib.sha256(crop.tobytes()).hexdigest(),
++    }
++(root / 'metrics.json').write_text(json.dumps(results, indent=2))
++def width(name):
++    box = results[name]['bbox']
++    return box[1] - box[0] + 1
++
++assert width('on') > width('off') * 2
++assert width('shutter1') > width('on')
++assert width('master_off') == width('off') == width('static')
++assert results['start']['bbox'][0] >= results['off']['bbox'][0] - 2
++assert results['end']['bbox'][1] <= results['off']['bbox'][1] + 2
++assert width('geometry_nodes') > width('static') * 2
++assert width('deform_on') > width('deform_off')
++assert width('scale') > width('static')
++assert results['rotation']['bbox'][3] - results['rotation']['bbox'][2] > 80
++assert results['deleted']['bbox'] is None
++for first, second in [
++    ('master_on', 'settled'),
++    ('camera_view', 'camera_settled'),
++    ('animated_camera', 'animated_camera_settled'),
++    ('orbit', 'orbit_settled'),
++    ('driver', 'return_frame'),
++]:
++    assert results[first]['pixel_hash'] == results[second]['pixel_hash'], (first, second)
++assert results['rolling_none']['pixel_hash'] != results['rolling_on']['pixel_hash']
++assert results['rolling_on']['pixel_hash'] != results['rolling_duration']['pixel_hash']
++assert results['rolling_duration']['pixel_hash'] != results['denoising']['pixel_hash']
++print('VIEWPORT_IMAGE_ASSERTIONS_PASS')
++print(json.dumps(results, indent=2))
+diff --git a/cycles_after_hours/tests/viewport-motion-blur/scripts/viewport-motion-test.py b/cycles_after_hours/tests/viewport-motion-blur/scripts/viewport-motion-test.py
+new file mode 100644
+index 00000000000..e1c3bb32bab
+--- /dev/null
++++ b/cycles_after_hours/tests/viewport-motion-blur/scripts/viewport-motion-test.py
+@@ -0,0 +1,255 @@
++import bpy
++bpy.context.preferences.view.show_splash = False
++import math
++import json
++import sys
++import pathlib
++import os
++from mathutils import Quaternion
++
++OUT = (pathlib.Path(os.environ['CAH_TEST_OUTPUT_ROOT']) / 'viewport-motion-tests')
++OUT.mkdir(parents=True, exist_ok=True)
++error_path = OUT / ('rolling-error.txt' if '--rolling' in sys.argv else 'viewport-error.txt')
++error_path.unlink(missing_ok=True)
++scene = bpy.context.scene
++bpy.ops.object.select_all(action='SELECT')
++bpy.ops.object.delete(use_global=False)
++scene.render.engine = 'CYCLES'
++scene.cycles.device = 'CPU'
++scene.cycles.samples = 32
++scene.cycles.preview_samples = 32
++scene.cycles.use_preview_denoising = False
++scene.cycles.use_denoising = False
++scene.render.resolution_x = 256
++scene.render.resolution_y = 256
++scene.render.resolution_percentage = 100
++scene.render.use_motion_blur = True
++scene.render.motion_blur_shutter = 0.5
++assert scene.cycles.use_viewport_motion_blur is False
++bpy.ops.mesh.primitive_cube_add()
++cube = bpy.context.object
++cube.scale = (0.4, 0.4, 0.4)
++mat = bpy.data.materials.new('Emission')
++nodes = mat.node_tree.nodes
++nodes.clear()
++em = nodes.new('ShaderNodeEmission')
++em.inputs['Color'].default_value = (1, 0.05, 0.01, 1)
++output = nodes.new('ShaderNodeOutputMaterial')
++mat.node_tree.links.new(em.outputs[0], output.inputs['Surface'])
++cube.data.materials.append(mat)
++for frame, x in [(49, -5), (50, 0), (51, 5)]:
++    cube.location.x = x
++    cube.keyframe_insert(data_path='location', frame=frame)
++bpy.ops.object.camera_add(location=(0, 0, 12))
++camera = bpy.context.object
++scene.camera = camera
++camera.data.type = 'ORTHO'
++camera.data.ortho_scale = 8
++scene.world.color = (0, 0, 0)
++scene.frame_set(50)
++
++if bpy.app.background:
++    hashes = []
++    import hashlib
++    for toggle in (False, True):
++        scene.cycles.use_viewport_motion_blur = toggle
++        scene.render.filepath = str(OUT / ('final_on.png' if toggle else 'final_off.png'))
++        bpy.ops.render.render(write_still=True)
++        import array
++        image = bpy.data.images.load(scene.render.filepath, check_existing=False)
++        hashes.append(hashlib.sha256(array.array('f', image.pixels[:]).tobytes()).hexdigest())
++    assert hashes[0] == hashes[1], hashes
++    assert hashes[0] == 'ce446cb34c24850bbd1912b1c827974db681e72eeaa5683be0a75571bc9899ca', hashes
++    final_results = {'center_50': hashes}
++    for master, position, time in [
++        (False, 'CENTER', 50.0),
++        (True, 'CENTER', 50.25),
++        (True, 'START', 50.25),
++        (True, 'END', 50.25),
++    ]:
++        scene.render.use_motion_blur = master
++        scene.render.motion_blur_position = position
++        scene.frame_set(int(time), subframe=time - int(time))
++        case = f'{master}_{position}_{time}'
++        pixels = []
++        for toggle in (False, True):
++            scene.cycles.use_viewport_motion_blur = toggle
++            scene.render.filepath = str(OUT / f'final_{case}_{toggle}.png')
++            bpy.ops.render.render(write_still=True)
++            image = bpy.data.images.load(scene.render.filepath, check_existing=False)
++            pixels.append(hashlib.sha256(array.array('f', image.pixels[:]).tobytes()).hexdigest())
++            assert scene.frame_current_final == time
++        assert pixels[0] == pixels[1], (case, pixels)
++        final_results[case] = pixels
++    (OUT / 'final-result.json').write_text(json.dumps(final_results, indent=2))
++    scene.render.use_motion_blur = True
++    scene.render.motion_blur_position = 'CENTER'
++    scene.frame_set(50)
++    bpy.ops.wm.save_as_mainfile(filepath=str(OUT / 'motion-test.blend'))
++    print('F12_REGRESSION_PASS', hashes, flush=True)
++else:
++    area = next(a for a in bpy.context.screen.areas if a.type == 'VIEW_3D')
++    space = area.spaces.active
++    space.overlay.show_overlays = False
++    space.show_gizmo = False
++    space.region_3d.view_rotation = Quaternion((1, 0, 0, 0))
++    space.region_3d.view_location = (0, 0, 0)
++    space.region_3d.view_distance = 12
++    space.region_3d.view_perspective = 'ORTHO'
++    space.shading.type = 'RENDERED'
++    events = []
++    def handler(*args):
++        events.append(scene.frame_current_final)
++    bpy.app.handlers.frame_change_post.append(handler)
++    def reset_object():
++        cube.animation_data_clear()
++        camera.animation_data_clear()
++        cube.location = (0, 0, 0)
++        cube.rotation_euler = (0, 0, 0)
++        cube.scale = (0.4, 0.4, 0.4)
++        camera.location = (0, 0, 12)
++        cube.modifiers.clear()
++        if cube.data.shape_keys:
++            cube.shape_key_clear()
++        scene.render.motion_blur_position = 'CENTER'
++        scene.render.motion_blur_shutter = 0.5
++        scene.render.use_motion_blur = True
++        scene.cycles.use_viewport_motion_blur = True
++        space.region_3d.view_perspective = 'ORTHO'
++        space.region_3d.view_rotation = Quaternion((1, 0, 0, 0))
++        scene.frame_set(50)
++    def rotation():
++        reset_object()
++        cube.scale = (2, 0.15, 0.15)
++        for frame, angle in [(49, -math.pi / 2), (50, 0), (51, math.pi / 2)]:
++            cube.rotation_euler.z = angle
++            cube.keyframe_insert(data_path='rotation_euler', frame=frame)
++        cube.cycles.motion_steps = 3
++        scene.frame_set(50)
++    def scaling():
++        reset_object()
++        for frame, scale in [(49, 0.1), (50, 0.6), (51, 1.5)]:
++            cube.scale = (scale, scale, scale)
++            cube.keyframe_insert(data_path='scale', frame=frame)
++        scene.frame_set(50)
++    def deform():
++        reset_object()
++        cube.shape_key_add(name='Basis')
++        key = cube.shape_key_add(name='Stretch')
++        for vertex in key.data:
++            vertex.co.x *= 8
++        for frame, value in [(49, 0), (50, 0.5), (51, 1)]:
++            key.value = value
++            key.keyframe_insert(data_path='value', frame=frame)
++        scene.frame_set(50)
++    def geometry_nodes():
++        reset_object()
++        group = bpy.data.node_groups.new('Motion Test', 'GeometryNodeTree')
++        group.interface.new_socket(name='Geometry', in_out='INPUT', socket_type='NodeSocketGeometry')
++        group.interface.new_socket(name='Geometry', in_out='OUTPUT', socket_type='NodeSocketGeometry')
++        inp = group.nodes.new('NodeGroupInput')
++        out = group.nodes.new('NodeGroupOutput')
++        position = group.nodes.new('GeometryNodeSetPosition')
++        group.links.new(inp.outputs['Geometry'], position.inputs['Geometry'])
++        group.links.new(position.outputs['Geometry'], out.inputs['Geometry'])
++        for frame, x in [(49, -5), (50, 0), (51, 5)]:
++            position.inputs['Offset'].default_value = (x, 0, 0)
++            position.inputs['Offset'].keyframe_insert(data_path='default_value', frame=frame)
++        mod = cube.modifiers.new('Motion Test', 'NODES')
++        mod.node_group = group
++        scene.frame_set(50)
++    def camera_motion():
++        reset_object()
++        for frame, x in [(49, -5), (50, 0), (51, 5)]:
++            camera.location.x = x
++            camera.keyframe_insert(data_path='location', frame=frame)
++        scene.frame_set(50)
++        space.region_3d.view_perspective = 'CAMERA'
++    def driver_motion():
++        reset_object()
++        cube.driver_add('location', 0).driver.expression = '5 * (frame - 50)'
++        scene.frame_set(50)
++    def rolling_setup():
++        scene.cycles.use_viewport_motion_blur = True
++        scene.render.motion_blur_shutter = 1.0
++        cube.scale.y = 2.0
++    stages = [
++        ('off', lambda: setattr(scene.cycles, 'use_viewport_motion_blur', False)),
++        ('on', lambda: setattr(scene.cycles, 'use_viewport_motion_blur', True)),
++        ('shutter1', lambda: setattr(scene.render, 'motion_blur_shutter', 1.0)),
++        ('start', lambda: setattr(scene.render, 'motion_blur_position', 'START')),
++        ('end', lambda: setattr(scene.render, 'motion_blur_position', 'END')),
++        ('master_off', lambda: setattr(scene.render, 'use_motion_blur', False)),
++        ('master_on', lambda: setattr(scene.render, 'use_motion_blur', True)),
++        ('settled', lambda: None),
++        ('camera_view', lambda: setattr(space.region_3d, 'view_perspective', 'CAMERA')),
++        ('camera_settled', lambda: None),
++        ('static', reset_object),
++        ('rotation', rotation),
++        ('scale', scaling),
++        ('deform', deform),
++        ('deform_off', lambda: setattr(cube.cycles, 'use_deform_motion', False)),
++        ('deform_on', lambda: setattr(cube.cycles, 'use_deform_motion', True)),
++        ('geometry_nodes', geometry_nodes),
++        ('animated_camera', camera_motion),
++        ('animated_camera_settled', lambda: None),
++        ('orbit', lambda: (reset_object(), setattr(space.region_3d, 'view_rotation', Quaternion((0, 1, 0), 0.4)))),
++        ('orbit_settled', lambda: None),
++        ('driver', driver_motion),
++        ('subframe', lambda: scene.frame_set(50, subframe=0.25)),
++        ('next_frame', lambda: scene.frame_set(51)),
++        ('negative_subframe', lambda: scene.frame_set(-1, subframe=0.25)),
++        ('return_frame', lambda: scene.frame_set(50)),
++    ]
++    if '--rolling' in sys.argv:
++        stages = [
++            ('rolling_none', rolling_setup),
++            ('rolling_on', lambda: setattr(scene.cycles, 'rolling_shutter_type', 'TOP')),
++            ('rolling_duration', lambda: setattr(scene.cycles, 'rolling_shutter_duration', 0.8)),
++            ('denoising', lambda: (setattr(scene.cycles, 'use_preview_denoising', True), scene.update_tag())),
++            ('deleted', lambda: bpy.data.objects.remove(cube, do_unlink=True)),
++        ]
++    index = -1
++    expected_time = 50
++    expected_frame = 50
++    expected_subframe = 0.0
++    handler_events = {}
++    def tick():
++        global index, expected_time, expected_frame, expected_subframe
++        try:
++            if index >= 0:
++                name = stages[index][0]
++                bpy.ops.screen.screenshot(filepath=str(OUT / (name + '.png')))
++                evaluated = bpy.context.evaluated_depsgraph_get().scene_eval.frame_current_final
++                assert scene.frame_current_final == expected_time, scene.frame_current_final
++                assert scene.frame_current == expected_frame
++                assert scene.frame_subframe == expected_subframe
++                assert evaluated == expected_time, evaluated
++                if name in {'driver', 'subframe', 'next_frame', 'negative_subframe', 'return_frame'}:
++                    evaluated_object = cube.evaluated_get(bpy.context.evaluated_depsgraph_get())
++                    expected_x = 5 * (expected_time - 50)
++                    assert abs(evaluated_object.matrix_world.translation.x - expected_x) < 1e-5
++                # Explicit frame/driver edits can schedule a normal frame handler at the
++                # user's time. Shutter samples must never run handlers at sample times.
++                assert all(time == expected_time for time in events), events
++                handler_events[name] = list(events)
++                print('VIEWPORT_STAGE_PASS', name, 'time', evaluated, flush=True)
++            index += 1
++            if index == len(stages):
++                result_name = 'rolling-result.json' if '--rolling' in sys.argv else 'viewport-result.json'
++                (OUT / result_name).write_text(json.dumps({'stages': [s[0] for s in stages], 'handlers': handler_events}))
++                bpy.ops.wm.quit_blender()
++                return None
++            stages[index][1]()
++            events.clear()
++            expected_time = scene.frame_current_final
++            expected_frame = scene.frame_current
++            expected_subframe = scene.frame_subframe
++            print('BEGIN_STAGE', stages[index][0], scene.render.motion_blur_position, scene.render.motion_blur_shutter, flush=True)
++            return 4.0
++        except Exception:
++            import traceback
++            error_path.write_text(traceback.format_exc())
++            bpy.ops.wm.quit_blender()
++            return None
++    bpy.app.timers.register(tick, first_interval=3.0)
+diff --git a/cycles_after_hours/tools/run_regressions.py b/cycles_after_hours/tools/run_regressions.py
+new file mode 100644
+index 00000000000..c3d9cfb42c1
+--- /dev/null
++++ b/cycles_after_hours/tools/run_regressions.py
+@@ -0,0 +1,107 @@
++"""Run existing Feature 001 regressions against one Blender, without rebuilding it."""
++import argparse
++import hashlib
++import json
++import os
++from pathlib import Path
++import subprocess
++import sys
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--blender', required=True, type=Path)
++    parser.add_argument('--output-root', required=True, type=Path,
++                        help='New, nonexistent directory outside the source/build trees')
++    args = parser.parse_args()
++    blender = args.blender.resolve(strict=True)
++    output = args.output_root.resolve()
++    project = Path(__file__).resolve().parents[1]
++    if output.is_relative_to(project.parent) or output.is_relative_to(blender.parent):
++        parser.error('Results must be outside the source and executable directories')
++    output.mkdir(parents=True, exist_ok=False)
++    scripts = project / 'tests' / 'viewport-motion-blur' / 'scripts'
++    scene = project / 'tests' / 'viewport-motion-blur' / 'scenes' / 'motion-test.blend'
++    env = dict(os.environ, CAH_TEST_OUTPUT_ROOT=str(output), PYTHONDONTWRITEBYTECODE='1')
++    report = {'blender': str(blender), 'executable_sha256': hashlib.file_digest(
++        blender.open('rb'), 'sha256').hexdigest(), 'steps': [], 'status': 'running'}
++    (output / 'script-hashes.json').write_text(json.dumps({
++        str(p.relative_to(project)): hashlib.sha256(p.read_bytes()).hexdigest()
++        for p in [*scripts.glob('*.py'), Path(__file__).resolve(), scene]
++    }, indent=2))
++
++    def run(name, command, marker=None):
++        print('RUN', name, flush=True)
++        startup = None
++        if os.name == 'nt':
++            startup = subprocess.STARTUPINFO()
++            startup.dwFlags |= subprocess.STARTF_USESHOWWINDOW
++            startup.wShowWindow = 0
++        with (output / (name + '.log')).open('w', encoding='utf-8') as log:
++            proc = subprocess.run([str(x) for x in command], stdout=log,
++                                  stderr=subprocess.STDOUT, env=env, cwd=output,
++                                  startupinfo=startup, timeout=900)
++        if proc.returncode:
++            raise RuntimeError(f'{name}: exit {proc.returncode}; inspect its log')
++        errors = list(output.rglob('*error.txt'))
++        if errors:
++            raise RuntimeError(f'{name}: script failure: {errors}')
++        if marker and marker not in (output / (name + '.log')).read_text(errors='replace'):
++            raise RuntimeError(f'{name}: missing {marker}')
++        report['steps'].append(name)
++        print('PASS', name, flush=True)
++
++    def background(name, script, extra=(), marker=None):
++        run(name, [blender, '--background', '--factory-startup', '--python-exit-code', '1',
++                   '--python', scripts / script, '--', *extra], marker)
++
++    def gui(name, script, extra=(), large=False):
++        run(name, [blender, '--factory-startup', '--log', 'cycles', '--log-level', 'debug',
++                   '--window-geometry', '0', '0', '1800' if large else '1000',
++                   '1000' if large else '800', '--python-exit-code', '1',
++                   '--python', scripts / script, '--', *extra])
++
++    def stages(relative, count, key=None):
++        data = json.loads((output / relative).read_text())
++        found = data[key] if key else data
++        if len(found) != count:
++            raise RuntimeError(f'{relative}: expected {count} stages, got {len(found)}')
++
++    try:
++        run('version', [blender, '--version'])
++        run('scene', [blender, '--background', '--factory-startup', scene,
++                      '--python-exit-code', '1', '--python-expr',
++                      "import bpy; assert bpy.context.scene.cycles.use_viewport_motion_blur; "
++                      "assert bpy.context.scene.frame_current == 50; print('SCENE_LOAD_PASS')"],
++            'SCENE_LOAD_PASS')
++        background('f12', 'viewport-motion-test.py', marker='F12_REGRESSION_PASS')
++        gui('motion-steps', 'motion-steps-stress.py', ['--case=migration', '--extended'])
++        stages('motion-steps-tests/migration/result.json', 74)
++        background('motion-steps-metrics', 'motion-steps-metrics.py',
++                   ['--case=migration', '--require-pass'], 'MOTION_STEPS_IMAGE_CHECK_PASS')
++        gui('viewport', 'viewport-motion-test.py')
++        stages('viewport-motion-tests/viewport-result.json', 26, 'stages')
++        gui('rolling', 'viewport-motion-test.py', ['--rolling'])
++        stages('viewport-motion-tests/rolling-result.json', 5, 'stages')
++        background('viewport-metrics', 'viewport-motion-metrics.py',
++                   marker='VIEWPORT_IMAGE_ASSERTIONS_PASS')
++        for name, extra, count in [('accumulation', [], 14),
++                                   ('camera-denoise', ['--camera', '--end', '--denoise',
++                                                       '--diagnose'], 3)]:
++            gui(name, 'accumulation-test.py', ['--case=' + name, *extra], large=True)
++            stages(f'accumulation-tests/{name}/result.json', count)
++            run(name + '-check', [sys.executable, scripts / 'accumulation-check.py',
++                                  output / (name + '.log'), '--require-pass'],
++                'ACCUMULATION_CHECK_PASS')
++        report['status'] = 'passed'
++    except Exception as exc:
++        report['status'] = 'failed'
++        report['error'] = str(exc)
++        raise
++    finally:
++        (output / 'summary.json').write_text(json.dumps(report, indent=2))
++    print('FEATURE_001_REGRESSION_PASS', flush=True)
++
++
++if __name__ == '__main__':
++    main()
+-- 
+2.55.0.windows.5
+
