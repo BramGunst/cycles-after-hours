@@ -1,6 +1,6 @@
 # Cycles After Hours
 
-Custom Blender 5.2.2 LTS development project extending Cycles with experimental renderer features.
+Cycles After Hours is an unofficial Blender 5.2.2 LTS development project extending Cycles. The renderer itself remains named Cycles. This project is not affiliated with the Blender Foundation.
 
 The first feature is **Viewport Motion Blur**: true Cycles shutter-based motion blur directly inside the Rendered Viewport.
 
@@ -12,7 +12,7 @@ Base Blender commit:
 
 `d13f752e3b9c`
 
-The source patches in this repository are stored separately from the full Blender source tree to avoid mirroring Blender's large Git/LFS history.
+This lightweight repository contains exported source patches and documentation, not a full Blender source checkout or compiled release.
 
 ## Viewport Motion Blur
 
@@ -136,3 +136,18 @@ v0.1.1 -> 0002
 v0.2.0 -> 0003
 v0.2.0 -> 0004
 v0.2.1 -> 0005
+```
+
+Apply the patches in that order to a suitable Blender 5.2.2 LTS source checkout based on `d13f752e3b9c`. The patches live in this repository. If you clone it as `cycles-after-hours` next to a `blender` checkout, run the following commands from the `cycles-after-hours` directory. Adjust the paths if your checkouts have different names or locations.
+
+```sh
+git -C ../blender am ../cycles-after-hours/features/viewport-motion-blur/v0.1.0/0001-Add-true-Cycles-motion-blur-to-rendered-viewport.patch
+git -C ../blender am ../cycles-after-hours/features/viewport-motion-blur/v0.1.1/0002-Fix-viewport-motion-corruption-when-changing-Motion-.patch
+git -C ../blender am ../cycles-after-hours/features/viewport-motion-blur/v0.2.0/0003-Fix-point-motion-BVH-rebuild-on-viewport-blur-toggle.patch
+git -C ../blender am ../cycles-after-hours/features/viewport-motion-blur/v0.2.0/0004-Add-live-unkeyed-transform-preview-for-viewport-motion-blur.patch
+git -C ../blender am ../cycles-after-hours/features/viewport-motion-blur/v0.2.1/0005-Fix-initial-viewport-motion-blur-overlay-crash.patch
+```
+
+Stop after the patch for the version you want.
+
+The separate [support patch](support/0001-Add-Cycles-After-Hours-docs-and-regression-suite.patch) exports documentation and regression scripts. It includes an LFS pointer for a `.blend` test scene, but this lightweight repository does not contain that scene's binary data. Applying the support patch alone will not supply a usable copy of that scene.

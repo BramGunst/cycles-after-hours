@@ -1,0 +1,9 @@
+# Local operating-system and editor artifacts.
+.DS_Store
+Thumbs.db
+*.swp
+
+# Local diagnostics and Blender backup saves.
+*.log
+*.blend1
+*.blend2
