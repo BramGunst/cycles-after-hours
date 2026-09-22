@@ -1,0 +1,20 @@
+body {
+  max-width: 850px;
+  margin: 0 auto;
+  padding: 24px;
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+}
+
+header,
+main,
+footer {
+  margin-bottom: 24px;
+}
+
+.button {
+  display: inline-block;
+  padding: 8px 12px;
+  border: 1px solid currentColor;
+  text-decoration: none;
+}
