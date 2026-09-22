@@ -1,59 +1,109 @@
-# Cycles Viewport Motion Blur
+# Cycles After Hours
 
-Custom Blender 5.2.2 LTS modification adding true Cycles motion blur
-to the Rendered Viewport.
+Custom Blender 5.2.2 LTS development project extending Cycles with experimental renderer features.
+
+The first feature is **Viewport Motion Blur**: true Cycles shutter-based motion blur directly inside the Rendered Viewport.
 
 ## Base
 
 Blender 5.2.2 LTS
 
 Base Blender commit:
-d13f752e3b9c
 
-Custom working commit:
-5dad52a8460
+`d13f752e3b9c`
 
-Local tag:
-viewport-motion-blur-v0.1
+The source patches in this repository are kept separately from the full Blender source tree to avoid mirroring Blender's large Git/LFS history.
 
-## Feature
+## Viewport Motion Blur
 
-Adds one new option under:
+Adds:
 
-Render Properties > Motion Blur > Viewport Motion Blur
+`Render Properties > Motion Blur > Viewport Motion Blur`
 
-When enabled, the Cycles Rendered Viewport uses Cycles' existing
-true shutter-based motion blur system.
+When enabled, the Cycles Rendered Viewport uses Cycles' existing motion blur system.
 
-It reuses existing Cycles settings including:
+It reuses existing Cycles functionality including:
 
 - Shutter
-- Shutter Position
+- Shutter Position: Start / Center / End
 - Shutter Curve
 - Rolling Shutter
 - Object Motion Steps
-- Object Deformation Motion
+- Deformation Motion
 - Camera Motion
-- GPU Compute
+- CPU / CUDA / OptiX
 - Viewport Denoising
 
 No screen-space, vector or compositor motion blur is used.
 
-## Restore
+## Versions
 
-1. Clone Blender.
-2. Checkout the Blender 5.2 release branch.
-3. Apply the patch in this repository.
-4. Run `make update`.
-5. Build Blender.
+### v0.1
 
-Example:
+Initial implementation of true Cycles motion blur in the Rendered Viewport.
 
-git am 0001-Add-true-Cycles-motion-blur-to-rendered-viewport.patch
+Patch:
 
-## Status
+`features/viewport-motion-blur/v0.1/0001-Add-true-Cycles-motion-blur-to-rendered-viewport.patch`
 
-v0.1 is the first known-good implementation.
+### v0.1.1
 
-A completely fresh build verification is currently being performed.
+Fixes viewport motion corruption when changing Motion Steps.
 
+Patch:
+
+`features/viewport-motion-blur/v0.1.1/0002-Fix-viewport-motion-corruption-when-changing-Motion-.patch`
+
+### v0.2
+
+Adds two further improvements.
+
+#### Point / particle motion BVH fix
+
+Fixes native Cycles point primitives with radius when Viewport Motion Blur is enabled while an OptiX Rendered Viewport is already running.
+
+The fix makes Cycles rebuild the point BVH when the primitive layout changes from static points to motion points instead of attempting an incompatible refit.
+
+Patch:
+
+`features/viewport-motion-blur/v0.2/0003-Fix-point-motion-BVH-rebuild-on-viewport-blur-toggle.patch`
+
+#### Live unkeyed transform preview
+
+Adds live motion-blur preview while interactively transforming an animated object or camera before inserting the new keyframe.
+
+Supported and verified:
+
+- Object location
+- Object rotation
+- Object scale
+- Camera location
+- Camera rotation
+- Start shutter
+- Center shutter
+- End shutter
+- Transform confirm
+- Transform cancel
+- CPU
+- CUDA
+- OptiX
+
+The implementation reuses Blender's existing Action, keyframe and animation evaluation systems and Cycles' existing shutter sampling.
+
+It does not implement custom FCurve interpolation or fake motion blur.
+
+Patch:
+
+`features/viewport-motion-blur/v0.2/0004-Add-live-unkeyed-transform-preview-for-viewport-motion-blur.patch`
+
+## Applying the patches
+
+The patches are incremental.
+
+Apply them in order to the matching Blender 5.2.2 source tree:
+
+```text
+v0.1   -> 0001
+v0.1.1 -> 0002
+v0.2   -> 0003
+v0.2   -> 0004

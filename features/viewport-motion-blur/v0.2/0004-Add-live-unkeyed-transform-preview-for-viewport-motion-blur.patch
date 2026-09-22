@@ -1,0 +1,259 @@
+From b5330961223e1e666dc59a31356a4cdb5208a507 Mon Sep 17 00:00:00 2001
+From: Bram Gunst <bram.gunst@gmail.com>
+Date: Tue, 22 Sep 2026 10:21:51 +0200
+Subject: [PATCH 2/2] Add live unkeyed transform preview for viewport motion
+ blur
+
+---
+ intern/cycles/blender/CMakeLists.txt          |   1 +
+ intern/cycles/blender/object.cpp              | 102 ++++++++++++++++++
+ source/blender/blenkernel/intern/anim_sys.cc  |   8 ++
+ source/blender/depsgraph/DEG_depsgraph.hh     |   9 ++
+ source/blender/depsgraph/intern/depsgraph.hh  |   3 +
+ .../depsgraph/intern/depsgraph_eval.cc        |  18 ++++
+ 6 files changed, 141 insertions(+)
+
+diff --git a/intern/cycles/blender/CMakeLists.txt b/intern/cycles/blender/CMakeLists.txt
+index 508285156e7..83981d46dc8 100644
+--- a/intern/cycles/blender/CMakeLists.txt
++++ b/intern/cycles/blender/CMakeLists.txt
+@@ -53,6 +53,7 @@ set(SRC
+ )
+ 
+ set(LIB
++  PRIVATE bf::animrig
+   PRIVATE bf::blenkernel
+   PRIVATE bf::depsgraph
+   PRIVATE bf::blenlib
+diff --git a/intern/cycles/blender/object.cpp b/intern/cycles/blender/object.cpp
+index ef94f427a00..e20dec5c15a 100644
+--- a/intern/cycles/blender/object.cpp
++++ b/intern/cycles/blender/object.cpp
+@@ -24,10 +24,19 @@
+ #include "util/task.h"
+ 
+ #include "BKE_duplilist.hh"
++#include "BKE_animsys.h"
+ #include "BKE_layer.hh"
++#include "BKE_lib_id.hh"
++#include "BKE_main.hh"
+ #include "BKE_material.hh"
+ #include "BKE_object.hh"
+ 
++#include "ANIM_action.hh"
++#include "ANIM_evaluation.hh"
++#include "ANIM_keyframing.hh"
++#include "DNA_anim_types.h"
++#include "RNA_access.hh"
++
+ #include "DEG_depsgraph.hh"
+ #include "DEG_depsgraph_query.hh"
+ 
+@@ -588,6 +597,80 @@ void BlenderSync::sync_objects(blender::Depsgraph &b_depsgraph,
+   }
+ }
+ 
++/* Key only edited transform properties on private copies. Blender owns all interpolation,
++ * handle updates, rotation-channel handling, and evaluation of the resulting Action. */
++static blender::Main *viewport_transform_preview_begin(blender::Depsgraph &depsgraph,
++                                                       blender::Scene &scene,
++                                                       const float frame,
++                                                       blender::Vector<blender::ID *> &ids)
++{
++  using namespace blender;
++  Main *preview_main = nullptr;
++  const AnimationEvalContext context = BKE_animsys_eval_context_construct(
++      &depsgraph, frame * scene.r.framelen);
++  DEG_foreach_ID(&depsgraph, [&](ID *id) {
++    if (GS(id->name) != ID_OB) {
++      return;
++    }
++    blender::Object *object = reinterpret_cast<blender::Object *>(id);
++    AnimData *adt = object->adt;
++    /* Do not mistake NLA blending or driver results for an unkeyed user edit. */
++    if (!adt || !adt->action || !adt->nla_tracks.is_empty() || !adt->drivers.is_empty() ||
++        ID_IS_LINKED(id) || ID_IS_LINKED(adt->action))
++    {
++      return;
++    }
++    PointerRNA ptr = RNA_id_pointer_create(id);
++    const animrig::EvaluationResult evaluated = animrig::evaluate_action(
++        ptr, adt->action->wrap(), adt->slot_handle, context);
++    blender::Vector<RNAPath> paths;
++    for (const auto &item : evaluated.items()) {
++      const StringRefNull path = item.key.rna_path;
++      if (path != "location" && path != "rotation_euler" && path != "rotation_quaternion" &&
++          path != "rotation_axis_angle" && path != "scale")
++      {
++        continue;
++      }
++      float live_value;
++      PathResolvedRNA property = item.value.prop_rna;
++      if (BKE_animsys_read_from_rna_path(&property, &live_value) &&
++          fabsf(live_value - item.value.value) > 1e-6f)
++      {
++        paths.append_non_duplicates({path});
++      }
++    }
++    if (paths.is_empty()) {
++      return;
++    }
++    if (!preview_main) {
++      preview_main = BKE_main_new();
++    }
++    const int copy_flags = LIB_ID_CREATE_NO_DEG_TAG | LIB_ID_COPY_NO_PREVIEW;
++    blender::Object *preview_object = reinterpret_cast<blender::Object *>(
++        BKE_id_copy_ex(preview_main, id, nullptr, copy_flags));
++    bAction *action = reinterpret_cast<bAction *>(
++        BKE_id_copy_ex(preview_main, &adt->action->id, nullptr, copy_flags));
++    if (!animrig::assign_action(action, preview_object->id)) {
++      return;
++    }
++    preview_object->adt->slot_handle = adt->slot_handle;
++    PointerRNA preview_ptr = RNA_id_pointer_create(&preview_object->id);
++    const auto result = animrig::insert_keyframes(preview_main,
++                                                 &preview_ptr,
++                                                 std::nullopt,
++                                                 paths,
++                                                 frame,
++                                                 context,
++                                                 BEZT_KEYTYPE_KEYFRAME,
++                                                 animrig::get_keyframing_flags(&scene));
++    if (result.get_count(animrig::SingleKeyingResult::SUCCESS) > 0) {
++      DEG_set_action_eval_override(&depsgraph, id, action);
++      ids.append(id);
++    }
++  });
++  return preview_main;
++}
++
+ void BlenderSync::sync_objects_and_motion(blender::RenderData &b_render,
+                                           blender::Depsgraph &b_depsgraph,
+                                           blender::bScreen *b_screen,
+@@ -613,10 +696,14 @@ void BlenderSync::sync_objects_and_motion(blender::RenderData &b_render,
+   float frame_center_delta = 0.0f;
+ 
+   const bool graph_was_active = viewport_motion && DEG_is_active(&b_depsgraph);
++  blender::Vector<blender::ID *> preview_ids;
++  blender::Main *preview_main = nullptr;
+   if (viewport_motion) {
+     /* Like an offline graph, shutter evaluation must not write simulation state back to
+      * originals. Do not call frame handlers or change the original scene's timeline. */
+     DEG_make_inactive(&b_depsgraph);
++    preview_main = viewport_transform_preview_begin(
++        b_depsgraph, *b_scene, frame_center + subframe_center, preview_ids);
+   }
+   auto frame_set = [&](const int frame, const float subframe) {
+     if (viewport_motion) {
+@@ -633,6 +720,21 @@ void BlenderSync::sync_objects_and_motion(blender::RenderData &b_render,
+       python_thread_state_restore(python_thread_state);
+       frame_set(frame_center, subframe_center);
+       python_thread_state_save(python_thread_state);
++      for (blender::ID *id : preview_ids) {
++        DEG_set_action_eval_override(&b_depsgraph, id, nullptr);
++      }
++      if (preview_main) {
++        /* Copies can reference geometry/materials in the user's Main. Balance those users
++         * individually; BKE_main_free intentionally skips reference counting. */
++        const int free_flags = blender::LIB_ID_FREE_NO_UI_USER | blender::LIB_ID_FREE_NO_DEG_TAG;
++        while (preview_main->objects.first) {
++          blender::BKE_id_free_ex(preview_main, preview_main->objects.first, free_flags, false);
++        }
++        while (preview_main->actions.first) {
++          blender::BKE_id_free_ex(preview_main, preview_main->actions.first, free_flags, false);
++        }
++        blender::BKE_main_free(preview_main);
++      }
+       if (graph_was_active) {
+         DEG_make_active(&b_depsgraph);
+       }
+diff --git a/source/blender/blenkernel/intern/anim_sys.cc b/source/blender/blenkernel/intern/anim_sys.cc
+index 6b906ccdcdd..963ceaa0ee1 100644
+--- a/source/blender/blenkernel/intern/anim_sys.cc
++++ b/source/blender/blenkernel/intern/anim_sys.cc
+@@ -4073,6 +4073,14 @@ void BKE_animsys_eval_animdata(Depsgraph *depsgraph, ID *id)
+ 
+   const AnimationEvalContext anim_eval_context = BKE_animsys_eval_context_construct(depsgraph,
+                                                                                     ctime);
++  if (adt) {
++    if (bAction *action = DEG_get_action_eval_override(depsgraph, DEG_get_original_id(id))) {
++      AnimData preview_adt = *adt;
++      preview_adt.action = action;
++      BKE_animsys_evaluate_animdata(id, &preview_adt, &anim_eval_context, ADT_RECALC_ANIM, false);
++      return;
++    }
++  }
+   BKE_animsys_evaluate_animdata(id, adt, &anim_eval_context, ADT_RECALC_ANIM, flush_to_original);
+ }
+ 
+diff --git a/source/blender/depsgraph/DEG_depsgraph.hh b/source/blender/depsgraph/DEG_depsgraph.hh
+index a1e85cbebbf..abc04737d9b 100644
+--- a/source/blender/depsgraph/DEG_depsgraph.hh
++++ b/source/blender/depsgraph/DEG_depsgraph.hh
+@@ -42,6 +42,7 @@ struct Depsgraph;
+ struct Main;
+ struct Scene;
+ struct ViewLayer;
++struct bAction;
+ 
+ enum eEvaluationMode {
+   DAG_EVAL_VIEWPORT = 0, /* evaluate for OpenGL viewport */
+@@ -236,6 +237,14 @@ bool DEG_is_active(const Depsgraph *depsgraph);
+ void DEG_make_active(Depsgraph *depsgraph);
+ void DEG_make_inactive(Depsgraph *depsgraph);
+ 
++/**
++ * Borrow an Action for temporary evaluation of an original ID in an inactive graph.
++ * The caller owns the Action, must keep its slot handles compatible with the original,
++ * and must clear the override before freeing it. Never changes the original AnimData.
++ */
++void DEG_set_action_eval_override(Depsgraph *depsgraph, const ID *id, bAction *action);
++bAction *DEG_get_action_eval_override(const Depsgraph *depsgraph, const ID *id);
++
+ /* Returns the number of times the graph has been evaluated. */
+ uint64_t DEG_get_update_count(const Depsgraph *depsgraph);
+ 
+diff --git a/source/blender/depsgraph/intern/depsgraph.hh b/source/blender/depsgraph/intern/depsgraph.hh
+index 2e84d214b84..fc9bd01ee1c 100644
+--- a/source/blender/depsgraph/intern/depsgraph.hh
++++ b/source/blender/depsgraph/intern/depsgraph.hh
+@@ -93,6 +93,9 @@ struct Depsgraph {
+    * blocks, used for quick lookups. */
+   Map<const ID *, IDNode *> id_hash;
+ 
++  /** Borrowed, scoped Actions used only while this graph is inactive. */
++  Map<const ID *, bAction *> action_eval_overrides;
++
+   /* Ordered list of ID nodes, order matches ID allocation order.
+    * Used for faster iteration, especially for areas which are critical to
+    * keep exact order of iteration. */
+diff --git a/source/blender/depsgraph/intern/depsgraph_eval.cc b/source/blender/depsgraph/intern/depsgraph_eval.cc
+index 4b2d3bdd622..f11789bec7f 100644
+--- a/source/blender/depsgraph/intern/depsgraph_eval.cc
++++ b/source/blender/depsgraph/intern/depsgraph_eval.cc
+@@ -91,4 +91,22 @@ void DEG_evaluate_on_framechange(Depsgraph *graph,
+   deg_flush_updates_and_refresh(deg_graph, sync_writeback);
+ }
+ 
++void DEG_set_action_eval_override(Depsgraph *graph, const ID *id, bAction *action)
++{
++  deg::Depsgraph *deg_graph = reinterpret_cast<deg::Depsgraph *>(graph);
++  BLI_assert(!deg_graph->is_evaluating && !deg_graph->is_active);
++  if (action) {
++    deg_graph->action_eval_overrides.add_overwrite(id, action);
++  }
++  else {
++    deg_graph->action_eval_overrides.remove(id);
++  }
++}
++
++bAction *DEG_get_action_eval_override(const Depsgraph *graph, const ID *id)
++{
++  const deg::Depsgraph *deg_graph = reinterpret_cast<const deg::Depsgraph *>(graph);
++  return deg_graph->is_active ? nullptr : deg_graph->action_eval_overrides.lookup_default(id, nullptr);
++}
++
+ }  // namespace blender
+-- 
+2.55.0.windows.5
+

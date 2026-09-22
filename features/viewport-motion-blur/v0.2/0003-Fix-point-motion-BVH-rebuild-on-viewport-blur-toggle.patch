@@ -1,0 +1,28 @@
+From 0e8d865d05df3b84c714cb640e719e142d98e6f0 Mon Sep 17 00:00:00 2001
+From: Bram Gunst <bram.gunst@gmail.com>
+Date: Tue, 22 Sep 2026 10:19:30 +0200
+Subject: [PATCH 1/2] Fix point motion BVH rebuild on viewport blur toggle
+
+---
+ intern/cycles/blender/sync.cpp | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/intern/cycles/blender/sync.cpp b/intern/cycles/blender/sync.cpp
+index 4409a9dd253..96ed110a468 100644
+--- a/intern/cycles/blender/sync.cpp
++++ b/intern/cycles/blender/sync.cpp
+@@ -439,6 +439,11 @@ void BlenderSync::sync_integrator(blender::ViewLayer &b_view_layer,
+      * This runs only during a requested scene sync, never for each render sample. */
+     for (const auto &item : geometry_map.key_to_scene_data()) {
+       geometry_map.set_recalc(item.first.id);
++      /* Switching point motion changes BVH primitive types and OptiX motion keys.
++       * A refit cannot update that layout, even when the point count is unchanged. */
++      if (integrator->motion_blur_is_modified() && item.second->is_pointcloud()) {
++        item.second->tag_update(scene, true);
++      }
+     }
+   }
+ 
+-- 
+2.55.0.windows.5
+
