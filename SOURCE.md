@@ -1,6 +1,6 @@
 # Source and build provenance
 
-The [v0.2.1 Windows x64 pre-release](https://github.com/BramGunst/cycles-after-hours/releases/tag/viewport-motion-blur-v0.2.1) is a modified Blender 5.2.2 LTS build with Viewport Motion Blur. Its Blender source base is revision [`d13f752e3b9c`](https://projects.blender.org/blender/blender/commit/d13f752e3b9c) in the [upstream Blender repository](https://projects.blender.org/blender/blender). This repository distributes the changes as incremental Git patches, rather than a full Blender checkout.
+The [v0.2.1 Windows x64 pre-release](https://github.com/BramGunst/cycles-after-hours/releases/tag/viewport-motion-blur-v0.2.1) is a modified Blender 5.2.2 LTS build with Viewport Motion Blur. Its Blender source base is revision [`d13f752e3b9c`](https://projects.blender.org/blender/blender/commit/d13f752e3b9c) in the [upstream Blender repository](https://projects.blender.org/blender/blender). This repository distributes the changes as incremental Git patches, rather than a full Blender checkout. The five patches reconstruct the source tree of the hotfix commit exactly when applied to that base; this was verified with a separate temporary Git index.
 
 Apply these patches in order to that base:
 
@@ -18,6 +18,12 @@ The v0.2.1 binary was compiled from the working tree containing the hotfix befor
 
 The [distributed ZIP](https://github.com/BramGunst/cycles-after-hours/releases/download/viewport-motion-blur-v0.2.1/Cycles-After-Hours_Blender-5.2.2_Viewport-Motion-Blur-v0.2.1-Test-Windows-x64.zip) has SHA-256 `129E80EB6EABCD88F90B3BF983DB3B2D7A6AD62986C9594E594C05B1C6CF40B1`.
 
+## Corresponding source availability
+
+The patch series identifies the exact modified source, but this lightweight repository currently supplies only the diffs, not a complete corresponding source checkout or archive. [GNU’s GPL guidance](https://www.gnu.org/licenses/gpl-faq.html.en#DistributingSourceIsInconvenient) says that providing diffs against a separately hosted original is not sufficient for binary distribution. Anyone who has already received the binary needs access to the assembled Blender 5.2.2 source at the patched revision, including its build scripts and applicable dependencies. Provide that complete source with clear directions and access equivalent to the binary before further distribution, and keep it available for as long as the binary is distributed. No such archive is claimed here.
+
 ## Licensing
 
-Blender is distributed under the GNU General Public License; see [Blender’s license information](https://www.blender.org/about/license/) and its [source and license files](https://projects.blender.org/blender/blender). The modified Blender core files carry `GPL-2.0-or-later` headers. The modified Cycles files carry `Apache-2.0` headers. Those per-file notices remain applicable. This patch repository does not contain a full copy of Blender’s source or a single license that accurately replaces the upstream notices, so no blanket root `LICENSE` has been added. Revisit whether to distribute copies of the applicable upstream license texts alongside the patches and binary when preparing the public release.
+[Blender’s licensing guidance](https://www.blender.org/about/license/) says source files are generally `GPL-2.0-or-later`, while some components including Cycles use compatible licenses such as `Apache-2.0`. The assembled Blender binary is distributed under GPL version 3 or later. The modified Blender core files in this patch series carry `GPL-2.0-or-later` headers; the modified Cycles files carry `Apache-2.0` headers. Preserve those per-file notices.
+
+The existing v0.2.1 ZIP already contains Blender’s `license/license.md`, `license/licenses.json`, `license/spdx/GPL-3.0-or-later.txt`, `license/spdx/GPL-2.0-or-later.txt`, `license/spdx/Apache-2.0.txt`, other third-party license texts, and the Cycles add-on license directory. See the [upstream Blender source and license files](https://projects.blender.org/blender/blender) as well. A blanket root `LICENSE` for this patch repository would obscure the different upstream file licenses, so none has been added. The unresolved distribution item is the complete corresponding source, not missing license text in the ZIP.
