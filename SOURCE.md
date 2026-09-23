@@ -16,7 +16,7 @@ Each patch builds on the preceding one. The [README](README.md#applying-the-patc
 
 The v0.2.1 binary was compiled from the working tree containing the hotfix before that hotfix was committed as [`2c58aabc791`](https://projects.blender.org/blender/blender/commit/2c58aabc791). Consequently, `blender --version` reports `b5330961223e (modified)`. It does **not** embed `2c58aabc791` as its reported revision.
 
-The [distributed ZIP](https://github.com/BramGunst/cycles-after-hours/releases/download/viewport-motion-blur-v0.2.1/Cycles-After-Hours_Blender-5.2.2_Viewport-Motion-Blur-v0.2.1-Test-Windows-x64.zip) has SHA-256 `129E80EB6EABCD88F90B3BF983DB3B2D7A6AD62986C9594E594C05B1C6CF40B1`.
+The [distributed ZIP](https://github.com/BramGunst/cycles-after-hours/releases/download/viewport-motion-blur-v0.2.1/Cycles-After-Hours_Blender-5.2.2_Viewport-Motion-Blur-v0.2.1-Windows-x64.zip) has SHA-256 `129E80EB6EABCD88F90B3BF983DB3B2D7A6AD62986C9594E594C05B1C6CF40B1`.
 
 ## Complete corresponding source
 
@@ -26,6 +26,6 @@ The archive contains the complete modified Blender source tree represented by ho
 
 ## Licensing
 
-[Blender’s licensing guidance](https://www.blender.org/about/license/) says source files are generally `GPL-2.0-or-later`, while some components including Cycles use compatible licenses such as `Apache-2.0`. The assembled Blender binary is distributed under GPL version 3 or later. The modified Blender core files in this patch series carry `GPL-2.0-or-later` headers; the modified Cycles files carry `Apache-2.0` headers. Preserve those per-file notices.
+[Blender's licensing guidance](https://www.blender.org/about/license/) says source files are generally `GPL-2.0-or-later`, while some components including Cycles use compatible licenses such as `Apache-2.0`. The assembled Blender binary is distributed under GPL version 3 or later. The modified Blender core files in this patch series carry `GPL-2.0-or-later` headers; the modified Cycles files carry `Apache-2.0` headers. Preserve those per-file notices.
 
-The existing v0.2.1 ZIP already contains Blender’s `license/license.md`, `license/licenses.json`, `license/spdx/GPL-3.0-or-later.txt`, `license/spdx/GPL-2.0-or-later.txt`, `license/spdx/Apache-2.0.txt`, other third-party license texts, and the Cycles add-on license directory. See the [upstream Blender source and license files](https://projects.blender.org/blender/blender) as well. A blanket root `LICENSE` for this patch repository would obscure the different upstream file licenses, so none has been added. The binary and complete-source release assets contain Blender’s applicable license material.
+The existing v0.2.1 ZIP already contains Blender's `license/license.md`, `license/licenses.json`, `license/spdx/GPL-3.0-or-later.txt`, `license/spdx/GPL-2.0-or-later.txt`, `license/spdx/Apache-2.0.txt`, other third-party license texts and the Cycles add-on license directory. See the [upstream Blender source and license files](https://projects.blender.org/blender/blender) as well. A blanket root `LICENSE` for this patch repository would obscure the different upstream file licenses, so none has been added. The binary and complete-source release assets contain Blender's applicable license material.

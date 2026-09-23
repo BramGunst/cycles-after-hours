@@ -34,7 +34,7 @@ It reuses existing Cycles functionality including:
 - CPU / CUDA / OptiX
 - Viewport Denoising
 
-No screen-space, vector, or compositor motion blur is used.
+No screen-space, vector or compositor motion blur is used.
 
 ## Versions
 
@@ -88,7 +88,7 @@ Supported and verified:
 - CUDA
 - OptiX
 
-The implementation reuses Blender's existing Action, keyframe, animation evaluation, and Cycles shutter-sampling systems.
+The implementation reuses Blender's existing Action, keyframe, animation evaluation and Cycles shutter-sampling systems.
 
 It does not implement custom FCurve interpolation or fake motion blur.
 
@@ -108,7 +108,7 @@ Cycles shutter evaluation could update evaluated geometry after viewport overlay
 
 The fix moves the external renderer's existing initial `view_update` before overlay batch synchronization.
 
-No point-motion, BVH, OptiX, or motion-blur algorithm was changed.
+No point-motion, BVH, OptiX or motion-blur algorithm was changed.
 
 Verified with:
 
