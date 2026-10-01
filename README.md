@@ -52,5 +52,3 @@ Use the [patch sequence and application commands](SOURCE.md#applying-the-patches
 ## Reporting Issues
 
 If something goes wrong, [report it on GitHub](https://github.com/BramGunst/cycles-after-hours/issues). Include your Blender version, GPU model, render device and steps to reproduce it. For a crash, attach the Blender crash log if you have it.
-
-The [website files](docs/index.html) contain the demos and a quick overview of the feature.
