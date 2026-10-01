@@ -51,7 +51,7 @@ Viewport Motion Blur works with the existing Cycles motion blur controls and sam
 - Live Transform Preview
 - Camera Motion
 - Deformation Motion
-- Motion Steps
+- Deformation Steps
 - Shutter Position and Shutter Curve
 - Rolling Shutter
 - Volume Motion Blur
@@ -63,7 +63,7 @@ Live Transform Preview lets you move an animated object or camera on an unkeyed 
 
 Camera Motion uses the actual animated camera motion in camera view. Navigating around a free-perspective view is not treated as shutter-time camera animation.
 
-Per-object Motion Steps and Use Motion Blur are respected. Shutter duration, Shutter Position and the existing Shutter Curve use the normal Cycles controls.
+Per-object Deformation Steps and Use Motion Blur are respected. Shutter duration, Shutter Position and the existing Shutter Curve use the normal Cycles controls.
 
 Shape keys and stable-topology Geometry Nodes deformation have been tested, along with native point and radius geometry. Existing Cycles Volume Motion Blur is also used where supported.
 

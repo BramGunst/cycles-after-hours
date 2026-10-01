@@ -60,7 +60,7 @@ Patch:
 
 ### v0.1.1
 
-Fixes viewport motion corruption when changing Motion Steps.
+Fixes viewport motion corruption when changing Deformation Steps.
 
 Patch:
 
