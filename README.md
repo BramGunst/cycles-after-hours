@@ -1,153 +1,56 @@
 # Cycles After Hours
 
-Cycles After Hours is an unofficial Blender 5.2.2 LTS development project extending Cycles. The renderer itself remains named Cycles. This project is not affiliated with the Blender Foundation.
+I'm Bram Gunst, and Cycles After Hours is my personal project for trying out features I would love to have in Cycles. The first is **Viewport Motion Blur**. I've wanted to see motion blur while working on an animation for a long time because it changes how the motion feels.
 
-The first feature is **Viewport Motion Blur**: true Cycles shutter-based motion blur directly inside the Rendered Viewport.
+Viewport Motion Blur uses the real Cycles shutter-based motion blur system in the Rendered Viewport. It does not use compositor tricks, a vector pass or a screen-space approximation.
 
-## Base
+This is a custom Blender/Cycles build, **not an addon**. The renderer is still called Cycles. The project is unofficial and is not affiliated with the Blender Foundation.
 
-Blender 5.2.2 LTS
+## Download
 
-Base Blender commit:
+The current build is **Viewport Motion Blur v0.2.1**, based on **Blender 5.2.2 LTS** for **Windows x64**.
 
-`d13f752e3b9c`
+[Download the Windows build](https://github.com/BramGunst/cycles-after-hours/releases/download/viewport-motion-blur-v0.2.1/Cycles-After-Hours_Blender-5.2.2_Viewport-Motion-Blur-v0.2.1-Windows-x64.zip) or read the [release notes](https://github.com/BramGunst/cycles-after-hours/releases/tag/viewport-motion-blur-v0.2.1). This is a pre-release; testing on more machines is still in progress.
 
-This lightweight repository contains exported source patches and documentation, not a full Blender source checkout or compiled release.
+The ZIP's SHA-256 is `129E80EB6EABCD88F90B3BF983DB3B2D7A6AD62986C9594E594C05B1C6CF40B1`.
 
-## Viewport Motion Blur
+## Getting Started
 
-Adds:
+1. Download the Windows ZIP above.
+2. Extract it wherever you like.
+3. Run `blender.exe`.
+4. Select Cycles, enable Motion Blur and Viewport Motion Blur under `Render Properties > Motion Blur`, then use Rendered Viewport shading.
 
-`Render Properties > Motion Blur > Viewport Motion Blur`
+Existing `.blend` files remain normal Blender files. The viewport checkbox does not change which motion blur settings apply to F12 rendering.
 
-When enabled, the Cycles Rendered Viewport uses Cycles' existing motion blur system.
+## Supported Features
 
-It reuses existing Cycles functionality including:
+The viewport uses the existing Cycles controls and motion sampling:
 
-- Shutter
-- Shutter Position: Start / Center / End
-- Shutter Curve
+- Live Transform Preview for animated objects and cameras before inserting a keyframe, including transform confirm and cancel
+- Camera Motion in camera view; navigating a free-perspective view is not shutter-time camera animation
+- Deformation Motion where supported, including tested shape keys and stable-topology Geometry Nodes deformation
+- Per-object Motion Steps and Use Motion Blur
+- Shutter duration, Shutter Position (Start / Center / End) and the existing Shutter Curve
 - Rolling Shutter
-- Object Motion Steps
-- Deformation Motion
-- Camera Motion
-- CPU / CUDA / OptiX
-- Viewport Denoising
+- Existing Cycles Volume Motion Blur where supported
+- Particles & Points, including the native point/radius geometry fixes
+- CPU / CUDA / OptiX and existing Viewport Denoising
 
-No screen-space, vector or compositor motion blur is used.
+Paused-frame rendering is the priority. Real-time playback performance is not guaranteed. Arbitrary simulations, caches and changing topology are not exhaustively tested, and the existing tests do not cover every GPU or driver configuration. Custom shutter curves are reused but were not separately exercised by the documented regression suite.
 
-## Versions
+## Source Code
 
-### v0.1.0
+This repository contains documentation and incremental source patches, not a full Blender checkout or the compiled build. The patches target Blender base revision `d13f752e3b9c`.
 
-Initial implementation of true Cycles motion blur in the Rendered Viewport.
+[SOURCE.md](SOURCE.md) documents the complete corresponding source download, dependency source packages, checksums, licensing and build provenance. It also explains why the executable reports `b5330961223e (modified)` rather than the later hotfix commit.
 
-Patch:
+### Applying the Patches
 
-`features/viewport-motion-blur/v0.1.0/0001-Add-true-Cycles-motion-blur-to-rendered-viewport.patch`
+Use the [patch sequence and application commands](SOURCE.md#applying-the-patches). The [version history](SOURCE.md#version-history) explains what each patch changes.
 
-### v0.1.1
+## Reporting Issues
 
-Fixes viewport motion corruption when changing Motion Steps.
+If something goes wrong, [report it on GitHub](https://github.com/BramGunst/cycles-after-hours/issues). Include your Blender version, GPU model, render device and steps to reproduce it. For a crash, attach the Blender crash log if you have it.
 
-Patch:
-
-`features/viewport-motion-blur/v0.1.1/0002-Fix-viewport-motion-corruption-when-changing-Motion-.patch`
-
-### v0.2.0
-
-Adds two further improvements.
-
-#### Point / Particle Motion BVH Fix
-
-Fixes native Cycles point primitives with radius when Viewport Motion Blur is enabled while an OptiX Rendered Viewport is already running.
-
-Cycles now rebuilds the point BVH when the primitive layout changes from static points to motion points instead of attempting an incompatible BVH refit.
-
-Patch:
-
-`features/viewport-motion-blur/v0.2.0/0003-Fix-point-motion-BVH-rebuild-on-viewport-blur-toggle.patch`
-
-#### Live Unkeyed Transform Preview
-
-Adds live motion-blur preview while interactively transforming an animated object or camera before inserting the new keyframe.
-
-Supported and verified:
-
-- Object location
-- Object rotation
-- Object scale
-- Camera location
-- Camera rotation
-- Start shutter
-- Center shutter
-- End shutter
-- Transform confirm
-- Transform cancel
-- CPU
-- CUDA
-- OptiX
-
-The implementation reuses Blender's existing Action, keyframe, animation evaluation and Cycles shutter-sampling systems.
-
-It does not implement custom FCurve interpolation or fake motion blur.
-
-Patch:
-
-`features/viewport-motion-blur/v0.2.0/0004-Add-live-unkeyed-transform-preview-for-viewport-motion-blur.patch`
-
-### v0.2.1
-
-Crash-fix release for Viewport Motion Blur.
-
-#### Initial Rendered Viewport Overlay Crash Fix
-
-Fixes a crash that could occur with native point/particle geometry when Viewport Motion Blur was already enabled before entering Rendered Viewport shading.
-
-Cycles shutter evaluation could update evaluated geometry after viewport overlay batches had already been collected, leaving the overlay draw path with stale geometry data.
-
-The fix moves the external renderer's existing initial `view_update` before overlay batch synchronization.
-
-No point-motion, BVH, OptiX or motion-blur algorithm was changed.
-
-Verified with:
-
-- OptiX initial Motion Blur ON -> Rendered Viewport
-- OptiX OFF -> Rendered -> ON
-- OptiX ON -> OFF -> ON
-- Leaving and re-entering Rendered Viewport with Motion Blur ON
-- CUDA and CPU
-- Native point particles
-- Sphere instances
-- F12 rendering
-- Live object and camera transform preview
-
-Patch:
-
-`features/viewport-motion-blur/v0.2.1/0005-Fix-initial-viewport-motion-blur-overlay-crash.patch`
-
-## Applying the Patches
-
-The patches are incremental and should be applied in order:
-
-```text
-v0.1.0 -> 0001
-v0.1.1 -> 0002
-v0.2.0 -> 0003
-v0.2.0 -> 0004
-v0.2.1 -> 0005
-```
-
-Apply the patches in that order to a suitable Blender 5.2.2 LTS source checkout based on `d13f752e3b9c`. The patches live in this repository. If you clone it as `cycles-after-hours` next to a `blender` checkout, run the following commands from the `cycles-after-hours` directory. Adjust the paths if your checkouts have different names or locations.
-
-```sh
-git -C ../blender am ../cycles-after-hours/features/viewport-motion-blur/v0.1.0/0001-Add-true-Cycles-motion-blur-to-rendered-viewport.patch
-git -C ../blender am ../cycles-after-hours/features/viewport-motion-blur/v0.1.1/0002-Fix-viewport-motion-corruption-when-changing-Motion-.patch
-git -C ../blender am ../cycles-after-hours/features/viewport-motion-blur/v0.2.0/0003-Fix-point-motion-BVH-rebuild-on-viewport-blur-toggle.patch
-git -C ../blender am ../cycles-after-hours/features/viewport-motion-blur/v0.2.0/0004-Add-live-unkeyed-transform-preview-for-viewport-motion-blur.patch
-git -C ../blender am ../cycles-after-hours/features/viewport-motion-blur/v0.2.1/0005-Fix-initial-viewport-motion-blur-overlay-crash.patch
-```
-
-Stop after the patch for the version you want.
-
-The separate [support patch](support/0001-Add-Cycles-After-Hours-docs-and-regression-suite.patch) exports documentation and regression scripts. It includes an LFS pointer for a `.blend` test scene, but this lightweight repository does not contain that scene's binary data. Applying the support patch alone will not supply a usable copy of that scene.
+The [website files](docs/index.html) contain the demos and a quick overview of the feature.
