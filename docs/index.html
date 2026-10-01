@@ -3,33 +3,126 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Cycles After Hours - Viewport Motion Blur</title>
-  <meta name="description" content="Cycles After Hours is an unofficial Blender build with true Cycles Viewport Motion Blur. Download the Windows x64 pre-release and find its source patches.">
+  <title>Viewport Motion Blur - Cycles After Hours</title>
+  <meta name="description" content="True Cycles motion blur directly in the Blender Rendered Viewport. Download Cycles After Hours for Blender 5.2.2 LTS on Windows x64.">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header><h1>Cycles After Hours</h1></header>
-  <main>
-    <p>Cycles After Hours is my custom Blender build for the Cycles features I've always wanted. Built after hours, starting with true Viewport Motion Blur.</p>
-    <p><a class="button" href="https://github.com/BramGunst/cycles-after-hours/releases/download/viewport-motion-blur-v0.2.1/Cycles-After-Hours_Blender-5.2.2_Viewport-Motion-Blur-v0.2.1-Windows-x64.zip">Download v0.2.1</a></p>
-    <p><a href="https://github.com/BramGunst/cycles-after-hours/releases/tag/viewport-motion-blur-v0.2.1">Release Notes</a></p>
-    <p><a href="https://github.com/BramGunst/cycles-after-hours/releases/download/viewport-motion-blur-v0.2.1/Cycles-After-Hours_Blender-5.2.2_Viewport-Motion-Blur-v0.2.1-Source.tar.xz">Source Code</a></p>
-    <p><a href="https://github.com/BramGunst/cycles-after-hours">View on GitHub</a></p>
-    <p><a href="https://github.com/BramGunst/cycles-after-hours/issues">Report an Issue</a></p>
-    <p><a href="privacy.html">Privacy</a></p>
-    <h2>Current Build</h2>
-    <ul>
-      <li>Viewport Motion Blur</li>
-      <li>Version v0.2.1</li>
-      <li>Pre-release</li>
-      <li>Blender 5.2.2 LTS</li>
-      <li>Windows x64</li>
-      <li>Cycles CPU / CUDA / OptiX</li>
-    </ul>
-    <p>SHA-256: <code>129E80EB6EABCD88F90B3BF983DB3B2D7A6AD62986C9594E594C05B1C6CF40B1</code></p>
-    <h2>Source Code</h2>
-    <p>Cycles After Hours is based on Blender, which is distributed under the GNU General Public License. The source changes are available in the <a href="https://github.com/BramGunst/cycles-after-hours">Cycles After Hours repository</a> as incremental Git patches against Blender base revision <code>d13f752e3b9c</code>. See <a href="https://github.com/BramGunst/cycles-after-hours/blob/main/SOURCE.md">source and build details</a> for the patch order, license information and source archive checksum.</p>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <nav class="site-nav" aria-label="Main navigation">
+    <div class="nav-inner">
+      <a class="site-brand" href="index.html">Cycles After Hours</a>
+      <div class="site-nav-links">
+        <a href="index.html">Home</a>
+        <div class="nav-dropdown">
+          <button type="button" aria-expanded="false" aria-controls="project-menu">Project</button>
+          <div class="dropdown-menu" id="project-menu">
+            <a href="project.html">Project Details</a>
+            <a href="https://github.com/BramGunst/cycles-after-hours/releases/tag/viewport-motion-blur-v0.2.1" target="_blank" rel="noopener noreferrer">Release Notes</a>
+            <a href="https://github.com/BramGunst/cycles-after-hours" target="_blank" rel="noopener noreferrer">View on GitHub</a>
+          </div>
+        </div>
+        <div class="nav-dropdown">
+          <button type="button" aria-expanded="false" aria-controls="contact-menu">Contact</button>
+          <div class="dropdown-menu" id="contact-menu">
+            <a href="mailto:bram.gunst@gmail.com">Email</a>
+            <a href="https://www.linkedin.com/in/bram-gunst/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+            <a href="https://www.instagram.com/bramgunst/" target="_blank" rel="noopener noreferrer">Instagram</a>
+            <a href="https://www.youtube.com/@bram_gunst" target="_blank" rel="noopener noreferrer">YouTube</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <header class="hero">
+    <h1>Viewport Motion Blur</h1>
+    <p class="hero-slogan">True Cycles motion blur right in the viewport</p>
+    <a class="button" href="https://github.com/BramGunst/cycles-after-hours/releases/download/viewport-motion-blur-v0.2.1/Cycles-After-Hours_Blender-5.2.2_Viewport-Motion-Blur-v0.2.1-Windows-x64.zip">Download v0.2.1</a>
+    <p class="hero-meta">Blender 5.2.2 LTS | Windows x64</p>
+    <svg class="axis-gizmo" viewBox="0 0 100 100" aria-hidden="true">
+      <path class="axis-x" d="M44 56L80 73"/><path class="axis-y" d="M44 56L15 76"/><path class="axis-z" d="M44 56L44 15"/>
+      <circle class="axis-x" cx="80" cy="73" r="11"/><circle class="axis-y" cx="15" cy="76" r="11"/><circle class="axis-z" cx="44" cy="15" r="11"/>
+      <text x="80" y="77">X</text><text x="15" y="80">Y</text><text x="44" y="19">Z</text>
+    </svg>
+  </header>
+  <main id="main-content">
+    <section class="feature-intro">
+      <h2>I finally got viewport motion blur working!</h2>
+      <p>I have wanted this in Blender for a long time. Motion blur changes how an animation feels, so being able to see it interactively while I work makes a huge difference.</p>
+      <p>Cycles After Hours is my personal project where I experiment with features I would love to see in Cycles. Viewport Motion Blur is the first feature I wanted to tackle, and I wanted to do it properly using the real Cycles motion blur system.</p>
+      <p class="feature-emphasis">No compositor tricks<br>No vector pass<br>No screen-space approximation</p>
+    </section>
+    <section class="demo-section">
+      <h2>See motion before you render</h2>
+      <p>See the blur update while you play your animation in the Rendered Viewport, without waiting for a final render.</p>
+      <div class="demo-video-wrapper">
+        <video class="demo-video" autoplay muted loop playsinline preload="metadata">
+        <source src="assets/videos/see_motion_before_you_render_compress.mp4" type="video/mp4">
+        </video>
+      </div>
+    </section>
+    <section class="transform-preview">
+      <h2>Live Transform Preview</h2>
+      <p>Move an animated object on an unkeyed frame and the motion blur updates immediately. You can shape the motion before adding another keyframe.</p>
+      <div class="demo-video-wrapper">
+        <video class="demo-video" autoplay muted loop playsinline preload="metadata">
+        <source src="assets/videos/interactive_motionblur_compress.mp4" type="video/mp4">
+        </video>
+      </div>
+    </section>
+      <section class="motion-steps-demo">
+        <h2>Motion Steps</h2>
+        <p>Cycles Motion Steps update directly in the viewport, so you can see how extra steps affect the blur.</p>
+        <div class="demo-video-wrapper">
+          <video class="demo-video" autoplay muted loop playsinline preload="metadata">
+            <source src="assets/videos/Motionblur_steps_compress.mp4" type="video/mp4">
+          </video>
+        </div>
+      </section>
+    <section class="supported-features">
+      <h2>Supported Cycles features</h2>
+      <ul>
+        <li>Live Transform Preview</li>
+        <li>Camera Motion</li>
+        <li>Deformation Motion</li>
+        <li>Motion Steps</li>
+        <li>Shutter Position</li>
+        <li>Rolling Shutter</li>
+        <li>Volume Motion Blur</li>
+        <li>Particles &amp; Points</li>
+        <li>CUDA / OptiX</li>
+      </ul>
+    </section>
+    <section class="getting-started" id="getting-started">
+      <h2>Try it in Blender</h2>
+      <p>It's a custom Blender/Cycles build, not an addon. Download the ZIP, extract it and run Blender.</p>
+      <ol>
+        <li><strong><a class="setup-download" href="https://github.com/BramGunst/cycles-after-hours/releases/download/viewport-motion-blur-v0.2.1/Cycles-After-Hours_Blender-5.2.2_Viewport-Motion-Blur-v0.2.1-Windows-x64.zip">Download</a></strong><br>Get the current Windows build.</li>
+        <li><strong>Extract</strong><br>Unzip it wherever you like.</li>
+        <li><strong>Launch Blender</strong><br>Start blender.exe like any other portable Blender build.</li>
+        <li><strong>Enable Viewport Motion Blur</strong><br>Enable Motion Blur and Viewport Motion Blur in the Cycles render settings.</li>
+      </ol>
+      <p>Existing .blend files remain normal Blender files.</p>
+      <img class="media-placeholder-doc toggle-screenshot" src="assets/images/ui_mb_toggle_off.png" alt="Cycles Motion Blur settings with the Viewport Motion Blur checkbox highlighted">
+    </section>
+    <section class="documentation-links" id="documentation">
+      <h2>Documentation</h2>
+      <ul class="documentation-list">
+        <li><a href="#getting-started">Getting Started</a><span>Install the build and enable Viewport Motion Blur.</span></li>
+        <li><a href="project.html">Project Details</a><span>Current build, download and source information.</span></li>
+        <li><a href="https://github.com/BramGunst/cycles-after-hours/releases/tag/viewport-motion-blur-v0.2.1" target="_blank" rel="noopener noreferrer">Release Notes</a><span>Changes in v0.2.1.</span></li>
+        <li><a href="https://github.com/BramGunst/cycles-after-hours/blob/main/SOURCE.md" target="_blank" rel="noopener noreferrer">Source Code</a><span>Source archive, patches and build information.</span></li>
+        <li><a href="https://github.com/BramGunst/cycles-after-hours" target="_blank" rel="noopener noreferrer">View on GitHub</a><span>Browse the project repository.</span></li>
+        <li><a href="https://github.com/BramGunst/cycles-after-hours/issues" target="_blank" rel="noopener noreferrer">Report an Issue</a><span>GitHub issue tracker.</span></li>
+      </ul>
+    </section>
   </main>
-  <footer><p>Cycles After Hours is an unofficial Blender/Cycles modification and is not affiliated with the Blender Foundation.</p></footer>
+  <footer>
+    <p>Cycles After Hours is an unofficial Blender/Cycles modification and is not affiliated with the Blender Foundation.</p>
+    <nav aria-label="Footer links">
+      <a href="privacy.html">Privacy</a>
+    </nav>
+  </footer>
+  <script src="script.js" defer></script>
 </body>
 </html>
