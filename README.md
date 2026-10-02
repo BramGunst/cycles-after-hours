@@ -16,6 +16,8 @@ This is a custom Blender/Cycles build, not an addon. The renderer is still calle
 
 Cycles After Hours is unofficial and is not affiliated with the Blender Foundation.
 
+[Website](https://bramgunst.github.io/cycles-after-hours-site/)
+
 ## Download
 
 The current build is **Viewport Motion Blur v0.2.1** for **Blender 5.2.2 LTS** on **Windows x64**.
