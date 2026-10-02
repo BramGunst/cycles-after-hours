@@ -24,8 +24,6 @@ The current build is **Viewport Motion Blur v0.2.1** for **Blender 5.2.2 LTS** o
 
 You can also read the [release notes](https://github.com/BramGunst/cycles-after-hours/releases/tag/viewport-motion-blur-v0.2.1).
 
-This is still a pre-release while I test it on more machines.
-
 SHA-256:
 
 `129E80EB6EABCD88F90B3BF983DB3B2D7A6AD62986C9594E594C05B1C6CF40B1`
