@@ -20,15 +20,17 @@ Cycles After Hours is unofficial and is not affiliated with the Blender Foundati
 
 ## Download
 
-The current build is **Viewport Motion Blur v0.2.1** for **Blender 5.2.2 LTS** on **Windows x64**.
+The current build is **Viewport Motion Blur v0.2.2** for **Blender 5.2.2 LTS** on **Windows x64**.
 
-[Download the Windows build](https://github.com/BramGunst/cycles-after-hours/releases/download/viewport-motion-blur-v0.2.1/Cycles-After-Hours_Blender-5.2.2_Viewport-Motion-Blur-v0.2.1-Windows-x64.zip)
+[Download the Windows build](https://github.com/BramGunst/cycles-after-hours/releases/download/viewport-motion-blur-v0.2.2/Cycles-After-Hours_Blender-5.2.2_Viewport-Motion-Blur-v0.2.2-Windows-x64.zip)
 
-You can also read the [release notes](https://github.com/BramGunst/cycles-after-hours/releases/tag/viewport-motion-blur-v0.2.1).
+You can also read the [release notes](https://github.com/BramGunst/cycles-after-hours/releases/tag/viewport-motion-blur-v0.2.2).
 
 SHA-256:
 
-`129E80EB6EABCD88F90B3BF983DB3B2D7A6AD62986C9594E594C05B1C6CF40B1`
+`D2E986E370EF0192B41E76EBA47F229A826974CA9860E4969C9EF03D1B1ACA6E`
+
+v0.2.2 rebuilds the Windows package with Blender 5.2's broader NVIDIA CUDA architecture support. This fixes missing CUDA binary kernel errors reported on GPUs including RTX 30-series and RTX 50-series cards. Viewport Motion Blur itself is unchanged from v0.2.1.
 
 ## Getting Started
 
@@ -83,11 +85,13 @@ The repository does not contain a full Blender checkout or the compiled build it
 
 [SOURCE.md](SOURCE.md) contains the complete corresponding source download, dependency source packages, checksums, licensing information and build provenance.
 
-It also explains why the current executable reports:
+[Download the complete corresponding source](https://github.com/BramGunst/cycles-after-hours/releases/download/viewport-motion-blur-v0.2.2/Cycles-After-Hours_Blender-5.2.2_Viewport-Motion-Blur-v0.2.2-Source.tar.xz) (SHA-256: `222CD25D347B9751948572D725619FE602837E98939B931A264235F0DBAA78FA`).
 
-`b5330961223e (modified)`
+The current executable reports:
 
-instead of the later hotfix commit.
+`2c58aabc7912`
+
+SOURCE.md also records the different build revision reported by the historical v0.2.1 executable.
 
 ### Applying the Patches
 
