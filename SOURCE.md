@@ -1,6 +1,6 @@
 # Source and build provenance
 
-The [v0.2.2 Windows x64 release being prepared](https://github.com/BramGunst/cycles-after-hours/releases/tag/viewport-motion-blur-v0.2.2) is a modified Blender 5.2.2 LTS build with Viewport Motion Blur. Its Blender source base is revision [`d13f752e3b9c`](https://projects.blender.org/blender/blender/commit/d13f752e3b9c) in the [upstream Blender repository](https://projects.blender.org/blender/blender). This repository contains incremental Git patches rather than a full Blender checkout. Applied to that base, the five patches reconstruct the hotfix source tree exactly. This was verified using a separate temporary Git index.
+The [v0.2.2 Windows x64 release](https://github.com/BramGunst/cycles-after-hours/releases/tag/viewport-motion-blur-v0.2.2) is a modified Blender 5.2.2 LTS build with Viewport Motion Blur. Its Blender source base is revision [`d13f752e3b9c`](https://projects.blender.org/blender/blender/commit/d13f752e3b9c) in the [upstream Blender repository](https://projects.blender.org/blender/blender). This repository contains incremental Git patches rather than a full Blender checkout. Applied to that base, the five patches reconstruct the hotfix source tree exactly. This was verified using a separate temporary Git index.
 
 Apply these patches in order to that base:
 
