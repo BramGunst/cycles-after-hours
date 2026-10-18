@@ -26,7 +26,7 @@ Viewport Motion Blur brings true Cycles shutter-based motion blur to the Rendere
 
 No compositor tricks, vector passes or screen-space approximations.
 
-[Download v0.2.2](https://github.com/BramGunst/cycles-after-hours/releases/download/viewport-motion-blur-v0.2.2/Cycles-After-Hours_Blender-5.2.2_Viewport-Motion-Blur-v0.2.2-Windows-x64.zip) | [Release Notes](https://github.com/BramGunst/cycles-after-hours/releases/tag/viewport-motion-blur-v0.2.2)
+[Download v0.2.2](https://github.com/BramGunst/cycles-after-hours/releases/download/viewport-motion-blur-v0.2.2/Cycles-After-Hours_Blender-5.2.2_Viewport-Motion-Blur-v0.2.2-Windows-x64.zip) | [Source Code](https://github.com/BramGunst/cycles-after-hours/releases/download/viewport-motion-blur-v0.2.2/Cycles-After-Hours_Blender-5.2.2_Viewport-Motion-Blur-v0.2.2-Source.tar.xz) | [Release Notes](https://github.com/BramGunst/cycles-after-hours/releases/tag/viewport-motion-blur-v0.2.2)
 
 ### Geometry Distance
 
