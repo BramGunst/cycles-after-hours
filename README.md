@@ -30,11 +30,11 @@ No compositor tricks, vector passes or screen-space approximations.
 
 ### Geometry Distance
 
-**In Development**
+**Experimental Build Available - v0.1.0**
 
-Geometry Distance is the next feature I'm working on for Cycles.
+An experimental distance shader for Cycles. Still in development.
 
-It's still in development, and I'll share more information and an individual build when it's ready.
+[Download v0.1.0](https://github.com/BramGunst/cycles-after-hours-site/releases/download/individual-geometry-distance-v0.1.0/Cycles-After-Hours_Blender-5.2.2_Geometry-Distance-v0.1.0-Windows-x64.zip) | [Source Code](https://github.com/BramGunst/cycles-after-hours-site/releases/download/individual-geometry-distance-v0.1.0/Cycles-After-Hours_Blender-5.2.2_Geometry-Distance-v0.1.0-Source.tar.xz) | [Release Notes](https://github.com/BramGunst/cycles-after-hours-site/releases/tag/individual-geometry-distance-v0.1.0)
 
 ## Builds & Downloads
 
@@ -64,7 +64,7 @@ For now, Viewport Motion Blur v0.2.2 is the latest published build in the main r
 
 Cycles After Hours is a custom Blender build, so there's no addon to install.
 
-For the currently available Windows build:
+For the Viewport Motion Blur Windows build:
 
 1. Download and extract the ZIP.
 2. Run `blender.exe`.
@@ -80,6 +80,8 @@ This repository contains the source patches and development history for Cycles A
 You can find the build information, checksums, licensing details and source instructions in [SOURCE.md](SOURCE.md).
 
 The complete corresponding source for Viewport Motion Blur v0.2.2 is available [here](https://github.com/BramGunst/cycles-after-hours/releases/download/viewport-motion-blur-v0.2.2/Cycles-After-Hours_Blender-5.2.2_Viewport-Motion-Blur-v0.2.2-Source.tar.xz).
+
+Geometry Distance source, checksums and build provenance are documented [here](features/geometry-distance/v0.1.0/README.md).
 
 GitHub's automatically generated source archives only contain this patch repository, not the complete modified Blender source.
 
