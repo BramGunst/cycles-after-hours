@@ -81,7 +81,7 @@ You can find the build information, checksums, licensing details and source inst
 
 The complete corresponding source for Viewport Motion Blur v0.2.2 is available [here](https://github.com/BramGunst/cycles-after-hours/releases/download/viewport-motion-blur-v0.2.2/Cycles-After-Hours_Blender-5.2.2_Viewport-Motion-Blur-v0.2.2-Source.tar.xz).
 
-Geometry Distance source, checksums and build provenance are documented [here](features/geometry-distance/v0.1.0/README.md).
+Geometry Distance source, checksums and build provenance are documented [here](features/geometry-distance/README.md).
 
 GitHub's automatically generated source archives only contain this patch repository, not the complete modified Blender source.
 
